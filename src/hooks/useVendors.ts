@@ -1,29 +1,82 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Vendor } from "@/types";
-import { mockVendors } from "@/data/mock";
+import {
+  createVendor,
+  deleteVendorApi,
+  getVendors,
+  updateVendorApi,
+  type VendorApi,
+} from "@/lib/api";
+
+function mapVendor(api: VendorApi): Vendor {
+  return {
+    id: api.id,
+    company: api.companyName,
+    category: api.serviceCategory,
+    contact: api.contactName ?? "",
+    phone: api.contactPhone ?? "",
+    totalPrice: api.price,
+    amountPaid: api.amountPaid ?? 0,
+    notes: api.notes ?? "",
+  };
+}
 
 export function useVendors() {
-  const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+  const queryClient = useQueryClient();
+  const [totalBudget, setTotalBudget] = useState<number>(0);
 
-  const addVendor = useCallback((data: Omit<Vendor, "id">) => {
-    const vendor: Vendor = { ...data, id: crypto.randomUUID() };
-    setVendors((prev) => [...prev, vendor]);
-    return vendor;
-  }, []);
+  const vendorsQuery = useQuery({
+    queryKey: ["vendors"],
+    queryFn: async () => {
+      const data = await getVendors();
+      const mapped = data.map(mapVendor);
+      if (totalBudget === 0) {
+        const initialBudget = mapped.reduce((s, v) => s + v.totalPrice, 0);
+        setTotalBudget(initialBudget);
+      }
+      return mapped;
+    },
+  });
 
-  const updateVendor = useCallback((id: string, data: Partial<Omit<Vendor, "id">>) => {
-    setVendors((prev) => prev.map((v) => (v.id === id ? { ...v, ...data } : v)));
-  }, []);
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<Vendor, "id">) => createVendor(data).then(mapVendor),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    },
+  });
 
-  const deleteVendor = useCallback((id: string) => {
-    setVendors((prev) => prev.filter((v) => v.id !== id));
-  }, []);
+  const updateMutation = useMutation({
+    mutationFn: (payload: { id: string; data: Partial<Omit<Vendor, "id">> }) =>
+      updateVendorApi(payload.id, payload.data).then(mapVendor),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteVendorApi(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    },
+  });
+
+  const vendors = vendorsQuery.data ?? [];
+
+  const servicesTotal = vendors.reduce((s, v) => s + v.totalPrice, 0);
+  const totalPaid = vendors.reduce((s, v) => s + v.amountPaid, 0);
 
   const budgetStats = {
-    totalBudget: vendors.reduce((s, v) => s + v.totalPrice, 0),
-    totalPaid: vendors.reduce((s, v) => s + v.amountPaid, 0),
-    remaining: vendors.reduce((s, v) => s + (v.totalPrice - v.amountPaid), 0),
+    totalBudget,
+    servicesTotal,
+    totalPaid,
+    remaining: Math.max(totalBudget - totalPaid, 0),
   };
 
-  return { vendors, budgetStats, addVendor, updateVendor, deleteVendor };
+  const addVendor = (data: Omit<Vendor, "id">) => addMutation.mutateAsync(data);
+  const updateVendor = (id: string, data: Partial<Omit<Vendor, "id">>) =>
+    updateMutation.mutateAsync({ id, data });
+  const deleteVendor = (id: string) => deleteMutation.mutateAsync(id);
+
+  return { vendors, budgetStats, totalBudget, setTotalBudget, addVendor, updateVendor, deleteVendor };
 }

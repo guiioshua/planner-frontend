@@ -12,14 +12,16 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Vendors() {
-  const { vendors, budgetStats, addVendor, updateVendor, deleteVendor } = useApp();
+  const { vendors, budgetStats, totalBudget, setTotalBudget, addVendor, updateVendor, deleteVendor } = useApp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Vendor | null>(null);
   const [form, setForm] = useState({ company: "", category: "", contact: "", phone: "", totalPrice: "", amountPaid: "", notes: "" });
+  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -54,13 +56,34 @@ export default function Vendors() {
     setDialogOpen(false);
   }
 
+  function openBudgetEdit() {
+    setBudgetInput(String(totalBudget ?? 0));
+    setBudgetDialogOpen(true);
+  }
+
+  function handleSaveBudget() {
+    const value = Number(budgetInput.replace(",", "."));
+    if (Number.isNaN(value) || value < 0) {
+      toast.error("Informe um valor de orçamento válido.");
+      return;
+    }
+    setTotalBudget(value);
+    toast.success("Orçamento atualizado");
+    setBudgetDialogOpen(false);
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-serif">Fornecedores</h1>
-        <Button variant="outline" className="border-foreground/20" onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Fornecedor
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-foreground/20" onClick={openBudgetEdit}>
+            <DollarSign className="h-4 w-4 mr-2" /> Editar Orçamento
+          </Button>
+          <Button variant="outline" className="border-foreground/20" onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Fornecedor
+          </Button>
+        </div>
       </div>
 
       {/* Budget summary bar */}
@@ -113,6 +136,7 @@ export default function Vendors() {
         </TableBody>
       </Table>
 
+      {/* Dialog fornecedor */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -133,6 +157,34 @@ export default function Vendors() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave}>{editing ? "Salvar" : "Adicionar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog orçamento */}
+      <Dialog open={budgetDialogOpen} onOpenChange={setBudgetDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Editar Orçamento Total</DialogTitle>
+            <DialogDescription>Defina o valor total orçado para o casamento.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Valor Orçado (R$)</Label>
+              <Input
+                type="number"
+                value={budgetInput}
+                onChange={(e) => setBudgetInput(e.target.value)}
+                min={0}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A soma dos serviços cadastrados atualmente é de <strong>{fmt(budgetStats.servicesTotal)}</strong>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBudgetDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveBudget}>Salvar Orçamento</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,29 +1,74 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Gift } from "@/types";
-import { mockGifts } from "@/data/mock";
+import {
+  createGift,
+  deleteGiftApi,
+  getActiveGifts,
+  getGifts,
+  updateGift,
+  type GiftApi,
+} from "@/lib/api";
+
+function mapGift(api: GiftApi): Gift {
+  return {
+    id: api.id,
+    name: api.name,
+    imageUrl: api.imageUrl ?? "",
+    purchaseUrl: api.purchaseLink ?? "",
+    active: api.active,
+  };
+}
 
 export function useGifts() {
-  const [gifts, setGifts] = useState<Gift[]>(mockGifts);
+  const queryClient = useQueryClient();
 
-  const addGift = useCallback((data: Omit<Gift, "id">) => {
-    const gift: Gift = { ...data, id: crypto.randomUUID() };
-    setGifts((prev) => [...prev, gift]);
-    return gift;
-  }, []);
+  const giftsQuery = useQuery({
+    queryKey: ["gifts"],
+    queryFn: async () => {
+      const data = await getGifts();
+      return data.map(mapGift);
+    },
+  });
 
-  const updateGift = useCallback((id: string, data: Partial<Omit<Gift, "id">>) => {
-    setGifts((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)));
-  }, []);
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<Gift, "id">) => createGift(data).then(mapGift),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gifts"] });
+    },
+  });
 
-  const deleteGift = useCallback((id: string) => {
-    setGifts((prev) => prev.filter((g) => g.id !== id));
-  }, []);
+  const updateMutation = useMutation({
+    mutationFn: (payload: { id: string; data: Partial<Omit<Gift, "id">> }) =>
+      updateGift(payload.id, payload.data).then(mapGift),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gifts"] });
+    },
+  });
 
-  const toggleActive = useCallback((id: string) => {
-    setGifts((prev) => prev.map((g) => (g.id === id ? { ...g, active: !g.active } : g)));
-  }, []);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteGiftApi(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gifts"] });
+    },
+  });
 
+  const toggleActive = useCallback(
+    (id: string) => {
+      const current = giftsQuery.data?.find((g) => g.id === id);
+      if (!current) return;
+      updateMutation.mutate({ id, data: { active: !current.active } });
+    },
+    [giftsQuery.data, updateMutation]
+  );
+
+  const gifts = giftsQuery.data ?? [];
   const activeGifts = gifts.filter((g) => g.active);
 
-  return { gifts, activeGifts, addGift, updateGift, deleteGift, toggleActive };
+  const addGift = (data: Omit<Gift, "id">) => addMutation.mutateAsync(data);
+  const updateGiftFn = (id: string, data: Partial<Omit<Gift, "id">>) =>
+    updateMutation.mutateAsync({ id, data });
+  const deleteGift = (id: string) => deleteMutation.mutateAsync(id);
+
+  return { gifts, activeGifts, addGift, updateGift: updateGiftFn, deleteGift, toggleActive };
 }
