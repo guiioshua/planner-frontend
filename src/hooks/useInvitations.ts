@@ -29,16 +29,6 @@ function mapInvitation(api: InvitationApi): Invitation {
   };
 }
 
-function toCreatePayload(inv: Omit<Invitation, "id" | "slug" | "createdAt">): CreateInvitationPayload {
-  return {
-    familyName: inv.familyName,
-    type: inv.type === "godparent" ? "GODPARENT" : "STANDARD",
-    coverImageUrl: inv.coverImageUrl || undefined,
-    messageBody: inv.message || undefined,
-    guests: inv.people.map((p) => ({ fullName: p.name, phone: p.phone || undefined })),
-  };
-}
-
 export function useInvitations() {
   const queryClient = useQueryClient();
 
@@ -51,26 +41,16 @@ export function useInvitations() {
   });
 
   const addMutation = useMutation({
-    mutationFn: (data: Omit<Invitation, "id" | "slug" | "createdAt">) =>
-      createInvitation(toCreatePayload(data)).then(mapInvitation),
+    mutationFn: (data: { payload: CreateInvitationPayload, file?: File }) =>
+      createInvitation(data.payload, data.file).then(mapInvitation),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: string; data: Partial<Omit<Invitation, "id" | "slug">> }) => {
-      const current = invitationsQuery.data?.find((i) => i.id === payload.id);
-      if (!current) throw new Error("Convite não encontrado");
-      const merged: Omit<Invitation, "id" | "slug" | "createdAt"> = {
-        familyName: payload.data.familyName ?? current.familyName,
-        type: payload.data.type ?? current.type,
-        coverImageUrl: payload.data.coverImageUrl ?? current.coverImageUrl,
-        message: payload.data.message ?? current.message,
-        people: (payload.data.people ?? current.people) as Person[],
-      };
-      return updateInvitation(payload.id, toCreatePayload(merged)).then(mapInvitation);
-    },
+    mutationFn: (args: { id: string; payload: CreateInvitationPayload, file?: File }) =>
+      updateInvitation(args.id, args.payload, args.file).then(mapInvitation),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
     },
@@ -111,22 +91,41 @@ export function useInvitations() {
     godparentConfirmed: allGuests.filter((g) => g.invitationType === "godparent" && g.status === "confirmed").length,
   };
 
-  const addInvitation = (data: Omit<Invitation, "id" | "slug" | "createdAt">) => addMutation.mutateAsync(data);
-  const updateInvitationFn = (id: string, data: Partial<Omit<Invitation, "id" | "slug">>) =>
-    updateMutation.mutateAsync({ id, data });
+  const addInvitation = (data: Omit<Invitation, "id" | "slug" | "createdAt">, file?: File) => {
+    const payload: CreateInvitationPayload = {
+      familyName: data.familyName,
+      type: data.type === "godparent" ? "GODPARENT" : "STANDARD",
+      messageBody: data.message,
+      guests: data.people.map(p => ({ fullName: p.name, phone: p.phone })),
+    };
+    return addMutation.mutateAsync({ payload, file });
+  };
+
+  const updateInvitationFn = (id: string, data: Partial<Omit<Invitation, "id" | "slug">>, file?: File) => {
+    // We need to construct a full payload for update because the API expects full object or at least we need to merge
+    // But since the UI provides full state, we can merge with existing if needed, or better, the UI should provide complete data.
+    // However, the `updateInvitation` function in api.ts takes `CreateInvitationPayload`.
+    // We'll rely on the caller to provide complete data or merge with current locally before calling.
+
+    // To support partial updates properly we should merge with current data here like before
+    const current = invitations.find((i) => i.id === id);
+    if (!current) throw new Error("Convite não encontrado");
+
+    const merged = { ...current, ...data };
+
+    const payload: CreateInvitationPayload = {
+      familyName: merged.familyName,
+      type: merged.type === "godparent" ? "GODPARENT" : "STANDARD",
+      messageBody: merged.message,
+      guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone })),
+    };
+
+    return updateMutation.mutateAsync({ id, payload, file });
+  };
+
   const deleteInvitationFn = (id: string) => deleteMutation.mutateAsync(id);
   const confirmRSVP = (slug: string, statuses: Record<string, RSVPStatus>) =>
     confirmMutation.mutateAsync({ slug, statuses });
-
-  const updatePersonStatus = useCallback(
-    (invitationId: string, personId: string, status: RSVPStatus) => {
-      const inv = invitations.find((i) => i.id === invitationId);
-      if (!inv) return;
-      const updatedPeople = inv.people.map((p) => (p.id === personId ? { ...p, status } : p));
-      updateInvitationFn(invitationId, { people: updatedPeople });
-    },
-    [invitations, updateInvitationFn]
-  );
 
   return {
     invitations,
@@ -135,7 +134,6 @@ export function useInvitations() {
     addInvitation,
     updateInvitation: updateInvitationFn,
     deleteInvitation: deleteInvitationFn,
-    updatePersonStatus,
     confirmRSVP,
     getBySlug,
     isLoading: invitationsQuery.isLoading,

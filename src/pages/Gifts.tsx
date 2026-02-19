@@ -6,25 +6,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, ExternalLink } from "lucide-react";
+import { Plus, Pencil, ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Gifts() {
-  const { gifts, addGift, updateGift, toggleActive } = useApp();
+  const { gifts, addGift, updateGift, deleteGift, toggleVisible } = useApp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Gift | null>(null);
   const [name, setName] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [purchaseUrl, setPurchaseUrl] = useState("");
+  const [purchaseLink, setPurchaseLink] = useState("");
+  const [visible, setVisible] = useState(true);
+
+  function resetForm() {
+    setName("");
+    setImageUrl("");
+    setPurchaseLink("");
+    setVisible(true);
+  }
 
   function openCreate() {
     setEditing(null);
-    setName("");
-    setImageUrl("");
-    setPurchaseUrl("");
+    resetForm();
     setDialogOpen(true);
   }
 
@@ -32,20 +39,26 @@ export default function Gifts() {
     setEditing(g);
     setName(g.name);
     setImageUrl(g.imageUrl);
-    setPurchaseUrl(g.purchaseUrl);
+    setPurchaseLink(g.purchaseLink);
+    setVisible(g.visible);
     setDialogOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) return;
-    if (editing) {
-      updateGift(editing.id, { name, imageUrl, purchaseUrl });
-      toast.success("Presente atualizado");
-    } else {
-      addGift({ name, imageUrl, purchaseUrl, active: true });
-      toast.success("Presente adicionado");
+    try {
+      if (editing) {
+        await updateGift(editing.id, { name, imageUrl, purchaseLink, visible });
+        toast.success("Presente atualizado");
+      } else {
+        await addGift({ name, imageUrl, purchaseLink, visible, status: "AVAILABLE" });
+        toast.success("Presente adicionado");
+      }
+      setDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar presente");
     }
-    setDialogOpen(false);
   }
 
   return (
@@ -59,26 +72,42 @@ export default function Gifts() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {gifts.map((g) => (
-          <Card key={g.id} className={`border border-border/50 shadow-none overflow-hidden ${!g.active ? "opacity-50" : ""}`}>
+          <Card key={g.id} className={`border border-border/50 shadow-none overflow-hidden ${!g.visible ? "opacity-60" : ""}`}>
             {g.imageUrl && (
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover" />
+                {g.status === "CHOSEN" && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Badge variant="secondary" className="text-sm font-medium">ESCOLHIDO</Badge>
+                  </div>
+                )}
               </div>
             )}
             <CardContent className="p-4 space-y-3">
-              <h3 className="font-serif text-lg">{g.name}</h3>
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-start">
+                <h3 className="font-serif text-lg leading-tight">{g.name}</h3>
+                {g.status === "AVAILABLE" ? (
+                  <Badge variant="outline" className="text-[10px] ml-2 shrink-0">Livre</Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-[10px] ml-2 shrink-0">Escolhido</Badge>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
-                  <Switch checked={g.active} onCheckedChange={() => toggleActive(g.id)} />
-                  <span className="text-xs text-muted-foreground">{g.active ? "Ativo" : "Inativo"}</span>
+                  <Switch checked={g.visible} onCheckedChange={() => toggleVisible(g.id)} />
+                  <span className="text-xs text-muted-foreground">{g.visible ? "Visível" : "Oculto"}</span>
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(g)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  {g.purchaseUrl && (
+                  <Button variant="ghost" size="icon" onClick={() => { deleteGift(g.id); toast.success("Presente removido"); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                  {g.purchaseLink && (
                     <Button variant="ghost" size="icon" asChild>
-                      <a href={g.purchaseUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={g.purchaseLink} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </Button>
@@ -99,7 +128,11 @@ export default function Gifts() {
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div><Label>URL da Imagem</Label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
-            <div><Label>URL de Compra</Label><Input value={purchaseUrl} onChange={(e) => setPurchaseUrl(e.target.value)} /></div>
+            <div><Label>URL de Compra</Label><Input value={purchaseLink} onChange={(e) => setPurchaseLink(e.target.value)} /></div>
+            <div className="flex items-center gap-2">
+              <Switch checked={visible} onCheckedChange={setVisible} />
+              <Label>Visível na lista pública?</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

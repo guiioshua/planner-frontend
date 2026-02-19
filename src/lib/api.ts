@@ -1,14 +1,18 @@
-import { Invitation, Gift, Vendor, RSVPStatus } from "@/types";
+import { Invitation, Gift, Vendor, RSVPStatus, GiftStatus } from "@/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
 
 async function http<T>(input: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+
+  // Only set Content-Type to JSON if body is NOT FormData
+  if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const res = await fetch(`${API_BASE_URL}${input}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
     ...init,
+    headers,
   });
 
   if (!res.ok) {
@@ -44,7 +48,7 @@ export interface InvitationApi {
 export interface CreateInvitationPayload {
   familyName: string;
   type: "STANDARD" | "GODPARENT";
-  coverImageUrl?: string;
+  // Cover image is handled separately as a File
   messageBody?: string;
   guests?: { fullName: string; phone?: string }[];
 }
@@ -53,17 +57,35 @@ export async function getInvitations(): Promise<InvitationApi[]> {
   return http<InvitationApi[]>("/invitations");
 }
 
-export async function createInvitation(payload: CreateInvitationPayload): Promise<InvitationApi> {
+export async function createInvitation(payload: CreateInvitationPayload, coverImage?: File): Promise<InvitationApi> {
+  const formData = new FormData();
+
+  const jsonBlob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+  formData.append("data", jsonBlob);
+
+  if (coverImage) {
+    formData.append("coverImage", coverImage);
+  }
+
   return http<InvitationApi>("/invitations", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: formData,
   });
 }
 
-export async function updateInvitation(id: string, payload: CreateInvitationPayload): Promise<InvitationApi> {
+export async function updateInvitation(id: string, payload: CreateInvitationPayload, coverImage?: File): Promise<InvitationApi> {
+  const formData = new FormData();
+
+  const jsonBlob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+  formData.append("data", jsonBlob);
+
+  if (coverImage) {
+    formData.append("coverImage", coverImage);
+  }
+
   return http<InvitationApi>(`/invitations/${id}`, {
     method: "PUT",
-    body: JSON.stringify(payload),
+    body: formData,
   });
 }
 
@@ -99,15 +121,16 @@ export interface GiftApi {
   name: string;
   purchaseLink: string | null;
   imageUrl: string | null;
-  active: boolean;
+  status: "AVAILABLE" | "CHOSEN";
+  visible: boolean;
 }
 
 export async function getGifts(): Promise<GiftApi[]> {
   return http<GiftApi[]>("/gifts");
 }
 
-export async function getActiveGifts(): Promise<GiftApi[]> {
-  return http<GiftApi[]>("/gifts/active");
+export async function getVisibleGifts(): Promise<GiftApi[]> {
+  return http<GiftApi[]>("/gifts/visible");
 }
 
 export async function createGift(payload: Omit<Gift, "id">): Promise<GiftApi> {
@@ -115,9 +138,10 @@ export async function createGift(payload: Omit<Gift, "id">): Promise<GiftApi> {
     method: "POST",
     body: JSON.stringify({
       name: payload.name,
-      purchaseLink: payload.purchaseUrl,
+      purchaseLink: payload.purchaseLink,
       imageUrl: payload.imageUrl,
-      active: payload.active,
+      visible: payload.visible,
+      status: payload.status,
     }),
   });
 }
@@ -127,10 +151,17 @@ export async function updateGift(id: string, payload: Partial<Omit<Gift, "id">>)
     method: "PUT",
     body: JSON.stringify({
       name: payload.name,
-      purchaseLink: payload.purchaseUrl,
+      purchaseLink: payload.purchaseLink,
       imageUrl: payload.imageUrl,
-      active: payload.active,
+      visible: payload.visible,
+      status: payload.status,
     }),
+  });
+}
+
+export async function chooseGiftApi(id: string): Promise<GiftApi> {
+  return http<GiftApi>(`/gifts/${id}/choose`, {
+    method: "PATCH",
   });
 }
 
@@ -149,6 +180,7 @@ export interface VendorApi {
   price: number;
   amountPaid: number | null;
   notes: string | null;
+  // TODO: Add any new fields if backend changes
 }
 
 export async function getVendors(): Promise<VendorApi[]> {

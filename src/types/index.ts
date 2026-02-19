@@ -19,12 +19,15 @@ export interface Invitation {
   createdAt: string;
 }
 
+export type GiftStatus = "AVAILABLE" | "CHOSEN";
+
 export interface Gift {
   id: string;
   name: string;
   imageUrl: string;
-  purchaseUrl: string;
-  active: boolean;
+  purchaseLink: string;
+  visible: boolean;
+  status: GiftStatus;
 }
 
 export interface Vendor {

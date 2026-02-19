@@ -1,22 +1,33 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useRsvpBySlug } from "@/hooks/useRsvpBySlug";
 import { useApp } from "@/context/AppContext";
 import { RSVPStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
-import { Gift } from "lucide-react";
+import { Gift, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function PublicRSVP() {
   const { slug } = useParams<{ slug: string }>();
-  const { getBySlug, confirmRSVP } = useApp();
+  const { confirmRSVP } = useApp();
+  const { data: invitation, isLoading, error } = useRsvpBySlug(slug);
   const navigate = useNavigate();
-  const invitation = getBySlug(slug || "");
 
   const [statuses, setStatuses] = useState<Record<string, RSVPStatus>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!invitation) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !invitation) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground font-serif text-xl">Convite não encontrado.</p>
@@ -30,10 +41,36 @@ export default function PublicRSVP() {
     setStatuses((prev) => ({ ...prev, [personId]: confirmed ? "confirmed" : "declined" }));
   }
 
-  function handleSubmit() {
-    confirmRSVP(slug!, statuses);
-    setSubmitted(true);
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    try {
+      await confirmRSVP(slug!, statuses);
+      setSubmitted(true);
+      toast.success("Presença confirmada!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao confirmar presença");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
+
+  // Pre-populate statuses if not set yet, to show current state in switches
+  // Limitation: if user changes state but doesn't save, it persists in local state until refresh.
+  // We want to default to what's in DB if local state is empty? 
+  // Actually, UI switches should reflect `statuses` state, initialized from DB or empty?
+  // Let's initialize `statuses` with DB values on first load or just use DB values as fallback.
+
+  const getStatus = (id: string, current: RSVPStatus) => {
+    // If we have a pending change, use it. Otherwise use current DB status.
+    // However, for the Switch: ON = confirmed, OFF = declined/pending?
+    // PRD says: "Alterna switch para Vou ou Não vou". 
+    // If pending, switch should probably be off? Or Indeterminate?
+    // Let's assume OFF = Declined/Pending, ON = Confirmed.
+
+    if (statuses[id]) return statuses[id];
+    return current;
+  };
 
   if (submitted || allConfirmedOrDeclined) {
     return (
@@ -64,23 +101,29 @@ export default function PublicRSVP() {
 
       <div className="w-full max-w-md space-y-4 mb-10">
         <h2 className="font-serif text-lg mb-2">Confirme a presença</h2>
-        {invitation.people.map((p) => (
-          <div key={p.id} className="flex items-center justify-between border border-border/50 rounded-sm p-4">
-            <span className="font-medium">{p.name}</span>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
-                {statuses[p.id] === "confirmed" ? "Confirmado" : statuses[p.id] === "declined" ? "Recusado" : "Pendente"}
-              </span>
-              <Switch
-                checked={statuses[p.id] === "confirmed"}
-                onCheckedChange={(checked) => handleToggle(p.id, checked)}
-              />
+        {invitation.people.map((p) => {
+          const currentStatus = getStatus(p.id, p.status);
+          const isConfirmed = currentStatus === "confirmed";
+
+          return (
+            <div key={p.id} className="flex items-center justify-between border border-border/50 rounded-sm p-4">
+              <span className="font-medium">{p.name}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {isConfirmed ? "Vou" : "Não vou"}
+                </span>
+                <Switch
+                  checked={isConfirmed}
+                  onCheckedChange={(checked) => handleToggle(p.id, checked)}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <Button onClick={handleSubmit} className="px-10">
+      <Button onClick={handleSubmit} className="px-10" disabled={isSubmitting}>
+        {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Confirmar
       </Button>
 

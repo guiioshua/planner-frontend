@@ -4,9 +4,10 @@ import { Gift } from "@/types";
 import {
   createGift,
   deleteGiftApi,
-  getActiveGifts,
+  getVisibleGifts,
   getGifts,
   updateGift,
+  chooseGiftApi,
   type GiftApi,
 } from "@/lib/api";
 
@@ -15,8 +16,9 @@ function mapGift(api: GiftApi): Gift {
     id: api.id,
     name: api.name,
     imageUrl: api.imageUrl ?? "",
-    purchaseUrl: api.purchaseLink ?? "",
-    active: api.active,
+    purchaseLink: api.purchaseLink ?? "",
+    visible: api.visible,
+    status: api.status,
   };
 }
 
@@ -31,10 +33,19 @@ export function useGifts() {
     },
   });
 
+  const visibleGiftsQuery = useQuery({
+    queryKey: ["gifts", "visible"],
+    queryFn: async () => {
+      const data = await getVisibleGifts();
+      return data.map(mapGift);
+    },
+  });
+
   const addMutation = useMutation({
     mutationFn: (data: Omit<Gift, "id">) => createGift(data).then(mapGift),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gifts"] });
+      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
     },
   });
 
@@ -43,6 +54,15 @@ export function useGifts() {
       updateGift(payload.id, payload.data).then(mapGift),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gifts"] });
+      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
+    },
+  });
+
+  const chooseMutation = useMutation({
+    mutationFn: (id: string) => chooseGiftApi(id).then(mapGift),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gifts"] });
+      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
     },
   });
 
@@ -50,25 +70,45 @@ export function useGifts() {
     mutationFn: (id: string) => deleteGiftApi(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gifts"] });
+      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
     },
   });
 
-  const toggleActive = useCallback(
-    (id: string) => {
-      const current = giftsQuery.data?.find((g) => g.id === id);
-      if (!current) return;
-      updateMutation.mutate({ id, data: { active: !current.active } });
-    },
-    [giftsQuery.data, updateMutation]
-  );
-
   const gifts = giftsQuery.data ?? [];
-  const activeGifts = gifts.filter((g) => g.active);
+  const visibleGifts = visibleGiftsQuery.data ?? [];
 
   const addGift = (data: Omit<Gift, "id">) => addMutation.mutateAsync(data);
-  const updateGiftFn = (id: string, data: Partial<Omit<Gift, "id">>) =>
-    updateMutation.mutateAsync({ id, data });
-  const deleteGift = (id: string) => deleteMutation.mutateAsync(id);
 
-  return { gifts, activeGifts, addGift, updateGift: updateGiftFn, deleteGift, toggleActive };
+  const updateGiftFn = useCallback(
+    (id: string, data: Partial<Omit<Gift, "id">>) => {
+      const current = gifts.find((g) => g.id === id);
+      if (!current) throw new Error("Presente não encontrado");
+      const merged = { ...current, ...data };
+      return updateMutation.mutateAsync({ id, data: merged });
+    },
+    [gifts, updateMutation]
+  );
+
+  const deleteGift = (id: string) => deleteMutation.mutateAsync(id);
+  const chooseGift = (id: string) => chooseMutation.mutateAsync(id);
+
+  const toggleVisible = useCallback(
+    (id: string) => {
+      const current = gifts.find((g) => g.id === id);
+      if (!current) return;
+      updateGiftFn(id, { visible: !current.visible });
+    },
+    [gifts, updateGiftFn]
+  );
+
+  return {
+    gifts,
+    visibleGifts,
+    addGift,
+    updateGift: updateGiftFn,
+    deleteGift,
+    chooseGift,
+    toggleVisible,
+    isLoading: giftsQuery.isLoading || visibleGiftsQuery.isLoading
+  };
 }

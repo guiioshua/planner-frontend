@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, ClipboardEvent, useRef } from "react";
 import { useApp } from "@/context/AppContext";
-import { Invitation, InvitationType, Person } from "@/types";
+import { Invitation, InvitationType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Copy, MessageCircle, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Copy, MessageCircle, Pencil, Trash2, X, Upload, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type FilterTab = "all" | "standard" | "godparent";
@@ -29,9 +29,13 @@ export default function Invitations() {
   // Form state
   const [familyName, setFamilyName] = useState("");
   const [type, setType] = useState<InvitationType>("standard");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [message, setMessage] = useState("");
   const [people, setPeople] = useState<{ name: string; phone: string }[]>([{ name: "", phone: "" }]);
+
+  // Image handling
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = filter === "all" ? invitations : invitations.filter((i) => i.type === filter);
 
@@ -41,13 +45,18 @@ export default function Invitations() {
     { key: "godparent", label: "Padrinhos" },
   ];
 
-  function openCreate() {
-    setEditing(null);
+  function resetForm() {
     setFamilyName("");
     setType("standard");
-    setCoverImageUrl("");
     setMessage("");
     setPeople([{ name: "", phone: "" }]);
+    setCoverImageFile(null);
+    setPreviewUrl("");
+  }
+
+  function openCreate() {
+    setEditing(null);
+    resetForm();
     setDialogOpen(true);
   }
 
@@ -55,46 +64,64 @@ export default function Invitations() {
     setEditing(inv);
     setFamilyName(inv.familyName);
     setType(inv.type);
-    setCoverImageUrl(inv.coverImageUrl);
     setMessage(inv.message);
     setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone })));
+    setPreviewUrl(inv.coverImageUrl);
+    setCoverImageFile(null); // Reset file if editing, unless user picks a new one
     setDialogOpen(true);
   }
 
-  function handleSave() {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setCoverImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  }
+
+  function handlePaste(e: ClipboardEvent) {
+    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+      const file = e.clipboardData.files[0];
+      if (file.type.startsWith("image/")) {
+        setCoverImageFile(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        e.preventDefault();
+      }
+    }
+  }
+
+  async function handleSave() {
     const validPeople = people.filter((p) => p.name.trim());
     if (!familyName.trim()) return;
 
-    if (editing) {
-      updateInvitation(editing.id, {
+    try {
+      const payload = {
         familyName,
         type,
-        coverImageUrl,
-        message,
+        message, // Note: coverImageUrl is not passed in payload explicitly for update unless needed, but here we rely on file or existing
+        coverImageUrl: editing?.coverImageUrl || "", // Satisfy type requirement
         people: validPeople.map((p, i) => ({
-          id: editing.people[i]?.id || crypto.randomUUID(),
+          id: editing?.people[i]?.id || crypto.randomUUID(), // Optimistic ID, hook handles logic
           name: p.name,
           phone: p.phone,
-          status: editing.people[i]?.status || "pending",
+          status: editing?.people[i]?.status || "pending",
         })),
-      });
-      toast.success("Convite atualizado");
-    } else {
-      addInvitation({
-        familyName,
-        type,
-        coverImageUrl,
-        message,
-        people: validPeople.map((p) => ({
-          id: crypto.randomUUID(),
-          name: p.name,
-          phone: p.phone,
-          status: "pending" as const,
-        })),
-      });
-      toast.success("Convite criado");
+      };
+
+      if (editing) {
+        // For update, we pass the file if it exists. 
+        // Logic in useInvitations will handle partial updates.
+        await updateInvitation(editing.id, payload, coverImageFile || undefined);
+        toast.success("Convite atualizado");
+      } else {
+        await addInvitation(payload, coverImageFile || undefined);
+        toast.success("Convite criado");
+      }
+      setDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar convite");
     }
-    setDialogOpen(false);
   }
 
   function copyLink(slug: string) {
@@ -105,8 +132,16 @@ export default function Invitations() {
 
   function shareWhatsApp(inv: Invitation) {
     const url = `${window.location.origin}/rsvp/${inv.slug}`;
+    const firstPerson = inv.people[0];
+    const phone = firstPerson?.phone?.replace(/\D/g, ""); // Remove non-digits
+
     const text = encodeURIComponent(`${inv.familyName}, confirme sua presença: ${url}`);
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+
+    if (phone) {
+      window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+    } else {
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+    }
   }
 
   function statusSummary(inv: Invitation) {
@@ -181,10 +216,10 @@ export default function Invitations() {
       </Table>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" onPaste={handlePaste}>
           <DialogHeader>
             <DialogTitle className="font-serif">{editing ? "Editar Convite" : "Novo Convite"}</DialogTitle>
-            <DialogDescription>Preencha os dados do convite.</DialogDescription>
+            <DialogDescription>Preencha os dados. Cole uma imagem (Ctrl+V) para a capa.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -201,14 +236,53 @@ export default function Invitations() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Image Upload Area */}
             <div>
-              <Label>URL da Imagem de Capa</Label>
-              <Input value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} placeholder="https://..." />
+              <Label>Imagem de Capa</Label>
+              <div
+                className="mt-1 border-2 border-dashed border-border/50 rounded-md p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+
+                {previewUrl ? (
+                  <div className="relative w-full aspect-video rounded overflow-hidden mb-2">
+                    <img src={previewUrl} alt="Capa" className="w-full h-full object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewUrl("");
+                        setCoverImageFile(null);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-4 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">Clique para upload ou Ctrl+V</p>
+                  </div>
+                )}
+              </div>
             </div>
+
             <div>
               <Label>Mensagem Personalizada</Label>
               <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
             </div>
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Pessoas</Label>

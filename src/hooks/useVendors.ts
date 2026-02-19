@@ -30,12 +30,7 @@ export function useVendors() {
     queryKey: ["vendors"],
     queryFn: async () => {
       const data = await getVendors();
-      const mapped = data.map(mapVendor);
-      if (totalBudget === 0) {
-        const initialBudget = mapped.reduce((s, v) => s + v.totalPrice, 0);
-        setTotalBudget(initialBudget);
-      }
-      return mapped;
+      return data.map(mapVendor);
     },
   });
 
