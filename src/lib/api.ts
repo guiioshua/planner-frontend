@@ -48,8 +48,9 @@ export interface InvitationApi {
 export interface CreateInvitationPayload {
   familyName: string;
   type: "STANDARD" | "GODPARENT";
-  // Cover image is handled separately as a File
   messageBody?: string;
+  /** Fallback URL used when no new coverImage file is uploaded. */
+  coverImageUrl?: string;
   guests?: { fullName: string; phone?: string }[];
 }
 

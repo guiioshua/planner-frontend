@@ -96,6 +96,7 @@ export function useInvitations() {
       familyName: data.familyName,
       type: data.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: data.message,
+      coverImageUrl: data.coverImageUrl || undefined,
       guests: data.people.map(p => ({ fullName: p.name, phone: p.phone })),
     };
     return addMutation.mutateAsync({ payload, file });
@@ -117,6 +118,8 @@ export function useInvitations() {
       familyName: merged.familyName,
       type: merged.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: merged.message,
+      // Preserve the existing image URL so it isn't cleared when no new file is selected
+      coverImageUrl: merged.coverImageUrl || undefined,
       guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone })),
     };
 

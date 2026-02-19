@@ -102,7 +102,7 @@ export default function Gifts() {
                   <Button variant="ghost" size="icon" onClick={() => openEdit(g)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => { deleteGift(g.id); toast.success("Presente removido"); }}>
+                  <Button variant="ghost" size="icon" onClick={async () => { try { await deleteGift(g.id); toast.success("Presente removido"); } catch { toast.error("Erro ao remover presente"); } }}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                   {g.purchaseLink && (

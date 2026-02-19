@@ -74,32 +74,23 @@ export function useGifts() {
     },
   });
 
+  const toggleVisible = useCallback(
+    (id: string) => {
+      const current = giftsQuery.data?.find((g) => g.id === id);
+      if (!current) return;
+      updateMutation.mutate({ id, data: { ...current, visible: !current.visible } });
+    },
+    [giftsQuery.data, updateMutation]
+  );
+
   const gifts = giftsQuery.data ?? [];
   const visibleGifts = visibleGiftsQuery.data ?? [];
 
   const addGift = (data: Omit<Gift, "id">) => addMutation.mutateAsync(data);
-
-  const updateGiftFn = useCallback(
-    (id: string, data: Partial<Omit<Gift, "id">>) => {
-      const current = gifts.find((g) => g.id === id);
-      if (!current) throw new Error("Presente não encontrado");
-      const merged = { ...current, ...data };
-      return updateMutation.mutateAsync({ id, data: merged });
-    },
-    [gifts, updateMutation]
-  );
-
+  const updateGiftFn = (id: string, data: Partial<Omit<Gift, "id">>) =>
+    updateMutation.mutateAsync({ id, data });
   const deleteGift = (id: string) => deleteMutation.mutateAsync(id);
   const chooseGift = (id: string) => chooseMutation.mutateAsync(id);
-
-  const toggleVisible = useCallback(
-    (id: string) => {
-      const current = gifts.find((g) => g.id === id);
-      if (!current) return;
-      updateGiftFn(id, { visible: !current.visible });
-    },
-    [gifts, updateGiftFn]
-  );
 
   return {
     gifts,
