@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -309,6 +311,14 @@ export default function Invitations() {
                   <Plus className="h-3 w-3 mr-1" /> Adicionar
                 </Button>
               </div>
+
+              <Alert className="mb-4 py-2 bg-muted/50 border-dashed">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs text-muted-foreground ml-2">
+                  Convidados podem adicionar e confirmar acompanhantes diretamente na página de RSVP pública.
+                </AlertDescription>
+              </Alert>
+
               {people.map((p, i) => (
                 <div key={i} className="space-y-2 mb-4 p-3 border border-border/50 rounded-lg">
                   <div className="flex gap-2">
@@ -352,6 +362,6 @@ export default function Invitations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

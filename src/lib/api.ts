@@ -116,6 +116,18 @@ export async function confirmRsvp(slug: string, statuses: Record<string, RSVPSta
   });
 }
 
+export async function addGuestToInvitation(slug: string, guest: { fullName: string; phone?: string; isChild: boolean; status: RSVPStatus }): Promise<InvitationApi> {
+  return http<InvitationApi>(`/rsvp/${slug}/guests`, {
+    method: "POST",
+    body: JSON.stringify({
+      fullName: guest.fullName,
+      phone: guest.phone,
+      isChild: guest.isChild,
+      status: guest.status.toUpperCase(),
+    }),
+  });
+}
+
 // Gifts
 
 export interface GiftApi {
