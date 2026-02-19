@@ -6,7 +6,9 @@ import { RSVPStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
-import { Gift, Loader2, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { Gift, Loader2, RotateCcw, ZoomIn, ZoomOut, RefreshCcw, X as CloseIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PublicRSVP() {
@@ -86,9 +88,59 @@ export default function PublicRSVP() {
       <BotanicalAccent variant="corner" className="w-16 mb-6 opacity-30 self-start" />
 
       {invitation.coverImageUrl && (
-        <div className="w-full max-w-lg aspect-[16/9] rounded-sm overflow-hidden mb-8">
-          <img src={invitation.coverImageUrl} alt="Capa do convite" className="w-full h-full object-cover" />
-        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <div className="w-full max-w-lg flex items-center justify-center cursor-zoom-in relative group mb-8 bg-muted/5 rounded-sm p-1">
+              <img
+                src={invitation.coverImageUrl}
+                alt="Capa do convite"
+                className="max-w-full max-h-[60vh] h-auto w-auto rounded-sm shadow-md border border-border/10 transition-all group-hover:brightness-95"
+              />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 rounded-sm">
+                <div className="bg-white/90 p-2 rounded-full shadow-lg">
+                  <ZoomIn className="h-5 w-5 text-foreground" />
+                </div>
+              </div>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 border-none bg-black/95 shadow-none flex flex-col items-center justify-center">
+            <TransformWrapper
+              initialScale={1}
+              initialPositionX={0}
+              initialPositionY={0}
+              centerOnInit
+            >
+              {({ zoomIn, zoomOut, resetTransform }) => (
+                <>
+                  <div className="absolute top-4 right-14 z-[60] flex gap-2">
+                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/10 text-white" onClick={() => zoomIn()}>
+                      <ZoomIn className="h-5 w-5" />
+                    </Button>
+                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/10 text-white" onClick={() => zoomOut()}>
+                      <ZoomOut className="h-5 w-5" />
+                    </Button>
+                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/10 text-white" onClick={() => resetTransform()}>
+                      <RefreshCcw className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  <TransformComponent
+                    wrapperStyle={{ width: "100%", height: "100%" }}
+                    contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <div className="w-full h-full flex items-center justify-center p-4">
+                      <img
+                        src={invitation.coverImageUrl}
+                        alt="Capa do convite tela cheia"
+                        className="max-w-full max-h-full object-contain cursor-grab active:cursor-grabbing"
+                      />
+                    </div>
+                  </TransformComponent>
+                </>
+              )}
+            </TransformWrapper>
+          </DialogContent>
+        </Dialog>
       )}
 
       <h1 className="font-serif text-3xl mb-2 text-center">{invitation.familyName}</h1>
