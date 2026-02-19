@@ -51,7 +51,7 @@ export interface CreateInvitationPayload {
   messageBody?: string;
   /** Fallback URL used when no new coverImage file is uploaded. */
   coverImageUrl?: string;
-  guests?: { fullName: string; phone?: string }[];
+  guests?: { fullName: string; phone?: string; status?: RSVPStatus }[];
 }
 
 export async function getInvitations(): Promise<InvitationApi[]> {

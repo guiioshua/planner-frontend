@@ -79,7 +79,7 @@ export function useInvitations() {
   );
 
   const allGuests = invitations.flatMap((inv) =>
-    inv.people.map((p) => ({ ...p, familyName: inv.familyName, invitationType: inv.type, invitationId: inv.id }))
+    inv.people.map((p) => ({ ...p, familyName: inv.familyName, invitationType: inv.type, invitationId: inv.id, invitationSlug: inv.slug }))
   );
 
   const stats = {
@@ -97,7 +97,7 @@ export function useInvitations() {
       type: data.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: data.message,
       coverImageUrl: data.coverImageUrl || undefined,
-      guests: data.people.map(p => ({ fullName: p.name, phone: p.phone })),
+      guests: data.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status })),
     };
     return addMutation.mutateAsync({ payload, file });
   };
@@ -120,7 +120,7 @@ export function useInvitations() {
       messageBody: merged.message,
       // Preserve the existing image URL so it isn't cleared when no new file is selected
       coverImageUrl: merged.coverImageUrl || undefined,
-      guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone })),
+      guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status })),
     };
 
     return updateMutation.mutateAsync({ id, payload, file });

@@ -1,6 +1,6 @@
 import { useState, ClipboardEvent, useRef } from "react";
 import { useApp } from "@/context/AppContext";
-import { Invitation, InvitationType } from "@/types";
+import { Invitation, InvitationType, RSVPStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,17 @@ import { Plus, Copy, MessageCircle, Pencil, Trash2, X, Upload, Image as ImageIco
 import { toast } from "sonner";
 
 type FilterTab = "all" | "standard" | "godparent";
+const statusLabels: Record<RSVPStatus, string> = {
+  pending: "Pendente",
+  confirmed: "Confirmado",
+  declined: "Recusado",
+};
+
+const statusColors: Record<RSVPStatus, string> = {
+  pending: "bg-warning/20 text-warning border-warning/30",
+  confirmed: "bg-success/20 text-success border-success/30",
+  declined: "bg-destructive/20 text-destructive border-destructive/30",
+};
 
 export default function Invitations() {
   const { invitations, addInvitation, updateInvitation, deleteInvitation } = useApp();
@@ -30,7 +41,7 @@ export default function Invitations() {
   const [familyName, setFamilyName] = useState("");
   const [type, setType] = useState<InvitationType>("standard");
   const [message, setMessage] = useState("");
-  const [people, setPeople] = useState<{ name: string; phone: string }[]>([{ name: "", phone: "" }]);
+  const [people, setPeople] = useState<{ name: string; phone: string; status: RSVPStatus }[]>([{ name: "", phone: "", status: "pending" }]);
 
   // Image handling
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -49,7 +60,7 @@ export default function Invitations() {
     setFamilyName("");
     setType("standard");
     setMessage("");
-    setPeople([{ name: "", phone: "" }]);
+    setPeople([{ name: "", phone: "", status: "pending" }]);
     setCoverImageFile(null);
     setPreviewUrl("");
   }
@@ -65,7 +76,7 @@ export default function Invitations() {
     setFamilyName(inv.familyName);
     setType(inv.type);
     setMessage(inv.message);
-    setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone })));
+    setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone, status: p.status })));
     setPreviewUrl(inv.coverImageUrl);
     setCoverImageFile(null); // Reset file if editing, unless user picks a new one
     setDialogOpen(true);
@@ -100,11 +111,11 @@ export default function Invitations() {
         type,
         message, // Note: coverImageUrl is not passed in payload explicitly for update unless needed, but here we rely on file or existing
         coverImageUrl: editing?.coverImageUrl || "", // Satisfy type requirement
-        people: validPeople.map((p, i) => ({
-          id: editing?.people[i]?.id || crypto.randomUUID(), // Optimistic ID, hook handles logic
+        people: validPeople.map((p) => ({
+          id: crypto.randomUUID(), // Optimistic ID, hook handles logic
           name: p.name,
           phone: p.phone,
-          status: editing?.people[i]?.status || "pending",
+          status: p.status,
         })),
       };
 
@@ -286,17 +297,27 @@ export default function Invitations() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Pessoas</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setPeople([...people, { name: "", phone: "" }])}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPeople([...people, { name: "", phone: "", status: "pending" }])}>
                   <Plus className="h-3 w-3 mr-1" /> Adicionar
                 </Button>
               </div>
               {people.map((p, i) => (
                 <div key={i} className="flex gap-2 mb-2">
-                  <Input placeholder="Nome" value={p.name} onChange={(e) => { const u = [...people]; u[i].name = e.target.value; setPeople(u); }} />
-                  <Input placeholder="Telefone" value={p.phone} onChange={(e) => { const u = [...people]; u[i].phone = e.target.value; setPeople(u); }} />
+                  <Input placeholder="Nome" value={p.name} className="flex-[2]" onChange={(e) => { const u = [...people]; u[i].name = e.target.value; setPeople(u); }} />
+                  <Input placeholder="Telefone" value={p.phone} className="flex-1" onChange={(e) => { const u = [...people]; u[i].phone = e.target.value; setPeople(u); }} />
+                  <Select value={p.status} onValueChange={(v) => { const u = [...people]; u[i].status = v as RSVPStatus; setPeople(u); }}>
+                    <SelectTrigger className={`w-36 text-xs h-9 ${statusColors[p.status]}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="confirmed">Confirmado</SelectItem>
+                      <SelectItem value="declined">Recusado</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {people.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" onClick={() => setPeople(people.filter((_, j) => j !== i))}>
-                      <X className="h-3 w-3" />
+                      <X className="h-4 w-4" />
                     </Button>
                   )}
                 </div>

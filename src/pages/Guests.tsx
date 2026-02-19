@@ -3,6 +3,7 @@ import { useApp } from "@/context/AppContext";
 import { RSVPStatus, InvitationType } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -23,9 +24,19 @@ const statusColors: Record<RSVPStatus, string> = {
 };
 
 export default function Guests() {
-  const { allGuests } = useApp();
+  const { allGuests, confirmRSVP } = useApp();
   const [statusFilter, setStatusFilter] = useState<RSVPStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<InvitationType | "all">("all");
+
+  const handleStatusChange = async (guest: typeof allGuests[0], newStatus: RSVPStatus) => {
+    try {
+      await confirmRSVP(guest.invitationSlug, { [guest.id]: newStatus });
+      toast.success(`Status de ${guest.name} atualizado`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao atualizar status");
+    }
+  };
 
   const filtered = allGuests.filter((g) => {
     if (statusFilter !== "all" && g.status !== statusFilter) return false;
@@ -79,9 +90,19 @@ export default function Guests() {
                 </Badge>
               </TableCell>
               <TableCell>
-                <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-xs ${statusColors[g.status]}`}>
-                  {statusLabels[g.status]}
-                </span>
+                <Select
+                  value={g.status}
+                  onValueChange={(v) => handleStatusChange(g, v as RSVPStatus)}
+                >
+                  <SelectTrigger className={`w-36 text-xs h-8 ${statusColors[g.status]}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="declined">Recusado</SelectItem>
+                  </SelectContent>
+                </Select>
               </TableCell>
             </TableRow>
           ))}
