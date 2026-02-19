@@ -16,6 +16,7 @@ export interface Invitation {
   type: InvitationType;
   coverImageUrl: string;
   message: string;
+  categories: string[];
   people: Person[];
   createdAt: string;
 }
@@ -28,6 +29,7 @@ export interface Gift {
   imageUrl: string;
   purchaseLink: string;
   visible: boolean;
+  category: string;
   status: GiftStatus;
   chosenByFamilyName?: string | null;
 }

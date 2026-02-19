@@ -18,6 +18,7 @@ function mapGift(api: GiftApi): Gift {
     imageUrl: api.imageUrl ?? "",
     purchaseLink: api.purchaseLink ?? "",
     visible: api.visible,
+    category: api.category ?? "A",
     status: api.status,
     chosenByFamilyName: api.chosenByFamilyName ?? null,
   };

@@ -38,6 +38,9 @@ export default function PublicGifts() {
   }
 
   const hasConfirmed = invitation.people.some((p) => p.status === "confirmed");
+  const displayedGifts = visibleGifts.filter((g) =>
+    invitation.categories?.includes(g.category)
+  );
 
   if (!hasConfirmed) {
     return (
@@ -77,7 +80,7 @@ export default function PublicGifts() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visibleGifts.map((g) => {
+          {displayedGifts.map((g) => {
             const isChosen = g.status === "CHOSEN";
             return (
               <Card key={g.id} className={`border border-border/50 shadow-none overflow-hidden ${isChosen ? "opacity-75" : ""}`}>

@@ -21,12 +21,14 @@ export default function Gifts() {
   const [imageUrl, setImageUrl] = useState("");
   const [purchaseLink, setPurchaseLink] = useState("");
   const [visible, setVisible] = useState(true);
+  const [category, setCategory] = useState("A");
 
   function resetForm() {
     setName("");
     setImageUrl("");
     setPurchaseLink("");
     setVisible(true);
+    setCategory("A");
   }
 
   function openCreate() {
@@ -41,6 +43,7 @@ export default function Gifts() {
     setImageUrl(g.imageUrl);
     setPurchaseLink(g.purchaseLink);
     setVisible(g.visible);
+    setCategory(g.category);
     setDialogOpen(true);
   }
 
@@ -48,10 +51,11 @@ export default function Gifts() {
     if (!name.trim()) return;
     try {
       if (editing) {
-        await updateGift(editing.id, { name, imageUrl, purchaseLink, visible });
+        await updateGift(editing.id, { name, imageUrl, purchaseLink, visible, category });
         toast.success("Presente atualizado");
       } else {
-        await addGift({ name, imageUrl, purchaseLink, visible, status: "AVAILABLE" });
+        console.log("Adding gift with category:", category);
+        await addGift({ name, imageUrl, purchaseLink, visible, category, status: "AVAILABLE" });
         toast.success("Presente adicionado");
       }
       setDialogOpen(false);
@@ -85,7 +89,10 @@ export default function Gifts() {
             )}
             <CardContent className="p-4 space-y-3">
               <div className="flex justify-between items-start">
-                <h3 className="font-serif text-lg leading-tight">{g.name}</h3>
+                <div className="flex flex-col">
+                  <h3 className="font-serif text-lg leading-tight">{g.name}</h3>
+                  <Badge variant="outline" className="w-fit mt-1 text-[10px]">{g.category}</Badge>
+                </div>
                 {g.status === "AVAILABLE" ? (
                   <Badge variant="outline" className="text-[10px] ml-2 shrink-0">Livre</Badge>
                 ) : (
@@ -135,6 +142,10 @@ export default function Gifts() {
             <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div><Label>URL da Imagem</Label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
             <div><Label>URL de Compra</Label><Input value={purchaseLink} onChange={(e) => setPurchaseLink(e.target.value)} /></div>
+            <div>
+              <Label>Categoria</Label>
+              <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: A, B, C" />
+            </div>
             <div className="flex items-center gap-2">
               <Switch checked={visible} onCheckedChange={setVisible} />
               <Label>Visível na lista pública?</Label>

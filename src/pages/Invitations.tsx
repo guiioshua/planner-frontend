@@ -43,6 +43,7 @@ export default function Invitations() {
   const [familyName, setFamilyName] = useState("");
   const [type, setType] = useState<InvitationType>("standard");
   const [message, setMessage] = useState("");
+  const [categories, setCategories] = useState("A");
   const [people, setPeople] = useState<{ name: string; phone: string; status: RSVPStatus; isChild: boolean }[]>([{ name: "", phone: "", status: "pending", isChild: false }]);
 
   // Image handling
@@ -62,6 +63,7 @@ export default function Invitations() {
     setFamilyName("");
     setType("standard");
     setMessage("");
+    setCategories("A");
     setPeople([{ name: "", phone: "", status: "pending", isChild: false }]);
     setCoverImageFile(null);
     setPreviewUrl("");
@@ -78,6 +80,7 @@ export default function Invitations() {
     setFamilyName(inv.familyName);
     setType(inv.type);
     setMessage(inv.message);
+    setCategories(inv.categories ? inv.categories.join(", ") : "A");
     setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone, status: p.status, isChild: p.isChild })));
     setPreviewUrl(inv.coverImageUrl);
     setCoverImageFile(null); // Reset file if editing, unless user picks a new one
@@ -112,6 +115,7 @@ export default function Invitations() {
         familyName,
         type,
         message, // Note: coverImageUrl is not passed in payload explicitly for update unless needed, but here we rely on file or existing
+        categories: categories.split(",").map(c => c.trim()).filter(c => c),
         coverImageUrl: editing?.coverImageUrl || "", // Satisfy type requirement
         people: validPeople.map((p) => ({
           id: crypto.randomUUID(), // Optimistic ID, hook handles logic
@@ -192,6 +196,7 @@ export default function Invitations() {
           <TableRow>
             <TableHead>Família</TableHead>
             <TableHead>Tipo</TableHead>
+            <TableHead>Categoria</TableHead>
             <TableHead>Pessoas</TableHead>
             <TableHead>Confirmados</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -205,6 +210,13 @@ export default function Invitations() {
                 <Badge variant={inv.type === "godparent" ? "default" : "secondary"} className="text-xs">
                   {inv.type === "godparent" ? "Padrinho" : "Padrão"}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {inv.categories && inv.categories.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {inv.categories.map(c => <Badge key={c} variant="outline" className="text-[9px] px-1 h-4">{c}</Badge>)}
+                  </div>
+                )}
               </TableCell>
               <TableCell>
                 <div>{inv.people.length}</div>
@@ -256,6 +268,11 @@ export default function Invitations() {
                   <SelectItem value="godparent">Padrinho</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Categorias</Label>
+              <Input value={categories} onChange={(e) => setCategories(e.target.value)} placeholder="Ex: A, B" />
+              <p className="text-[10px] text-muted-foreground">Separe por vírgula (A, B, C...)</p>
             </div>
 
             {/* Image Upload Area */}

@@ -36,6 +36,7 @@ export interface InvitationApi {
   slug: string;
   coverImageUrl: string | null;
   messageBody: string | null;
+  categories: string[];
   createdAt: string;
   guests: {
     id: string;
@@ -50,6 +51,7 @@ export interface CreateInvitationPayload {
   familyName: string;
   type: "STANDARD" | "GODPARENT";
   messageBody?: string;
+  categories?: string[];
   /** Fallback URL used when no new coverImage file is uploaded. */
   coverImageUrl?: string;
   guests?: { fullName: string; phone?: string; status?: RSVPStatus; isChild: boolean }[];
@@ -137,6 +139,7 @@ export interface GiftApi {
   imageUrl: string | null;
   status: "AVAILABLE" | "CHOSEN";
   visible: boolean;
+  category: string;
   chosenByFamilyName?: string | null;
 }
 
@@ -149,6 +152,7 @@ export async function getVisibleGifts(): Promise<GiftApi[]> {
 }
 
 export async function createGift(payload: Omit<Gift, "id">): Promise<GiftApi> {
+  console.log("createGift payload:", payload);
   return http<GiftApi>("/gifts", {
     method: "POST",
     body: JSON.stringify({

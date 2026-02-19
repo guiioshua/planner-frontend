@@ -19,6 +19,7 @@ function mapInvitation(api: InvitationApi): Invitation {
     type: api.type === "GODPARENT" ? "godparent" : "standard",
     coverImageUrl: api.coverImageUrl ?? "",
     message: api.messageBody ?? "",
+    categories: api.categories ?? ["A"],
     createdAt: api.createdAt,
     people: api.guests.map((g) => ({
       id: g.id,
@@ -99,6 +100,7 @@ export function useInvitations() {
       familyName: data.familyName,
       type: data.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: data.message,
+      categories: data.categories,
       coverImageUrl: data.coverImageUrl || undefined,
       guests: data.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status, isChild: p.isChild })),
     };
@@ -121,6 +123,7 @@ export function useInvitations() {
       familyName: merged.familyName,
       type: merged.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: merged.message,
+      categories: merged.categories,
       // Preserve the existing image URL so it isn't cleared when no new file is selected
       coverImageUrl: merged.coverImageUrl || undefined,
       guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status, isChild: p.isChild })),
