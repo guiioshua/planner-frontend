@@ -10,8 +10,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const summaryCards = [
-    { label: "Convites", value: stats.totalInvitations, icon: Mail },
-    { label: "Confirmados", value: stats.confirmedGuests, icon: Users },
+    { label: "Convites", value: stats.totalInvitations, icon: Mail, subValue: `Crianças: ${stats.totalChildren}` },
+    { label: "Confirmados", value: stats.confirmedGuests, icon: Users, subValue: `Crianças: ${stats.confirmedChildren}` },
     { label: "Pendentes", value: stats.pendingGuests, icon: Clock },
     { label: "Recusados", value: stats.declinedGuests, icon: UserX },
     { label: "Padrinhos Confirmados", value: stats.godparentConfirmed, icon: Heart },
@@ -44,6 +44,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-serif">{c.value}</p>
+              {c.subValue && <p className="text-xs text-muted-foreground mt-1">{c.subValue}</p>}
             </CardContent>
           </Card>
         ))}

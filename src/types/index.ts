@@ -6,6 +6,7 @@ export interface Person {
   name: string;
   phone: string;
   status: RSVPStatus;
+  isChild: boolean;
 }
 
 export interface Invitation {

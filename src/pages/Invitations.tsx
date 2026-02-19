@@ -41,7 +41,7 @@ export default function Invitations() {
   const [familyName, setFamilyName] = useState("");
   const [type, setType] = useState<InvitationType>("standard");
   const [message, setMessage] = useState("");
-  const [people, setPeople] = useState<{ name: string; phone: string; status: RSVPStatus }[]>([{ name: "", phone: "", status: "pending" }]);
+  const [people, setPeople] = useState<{ name: string; phone: string; status: RSVPStatus; isChild: boolean }[]>([{ name: "", phone: "", status: "pending", isChild: false }]);
 
   // Image handling
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -60,7 +60,7 @@ export default function Invitations() {
     setFamilyName("");
     setType("standard");
     setMessage("");
-    setPeople([{ name: "", phone: "", status: "pending" }]);
+    setPeople([{ name: "", phone: "", status: "pending", isChild: false }]);
     setCoverImageFile(null);
     setPreviewUrl("");
   }
@@ -76,7 +76,7 @@ export default function Invitations() {
     setFamilyName(inv.familyName);
     setType(inv.type);
     setMessage(inv.message);
-    setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone, status: p.status })));
+    setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone, status: p.status, isChild: p.isChild })));
     setPreviewUrl(inv.coverImageUrl);
     setCoverImageFile(null); // Reset file if editing, unless user picks a new one
     setDialogOpen(true);
@@ -116,6 +116,7 @@ export default function Invitations() {
           name: p.name,
           phone: p.phone,
           status: p.status,
+          isChild: p.isChild,
         })),
       };
 
@@ -203,7 +204,14 @@ export default function Invitations() {
                   {inv.type === "godparent" ? "Padrinho" : "Padrão"}
                 </Badge>
               </TableCell>
-              <TableCell>{inv.people.length}</TableCell>
+              <TableCell>
+                <div>{inv.people.length}</div>
+                {inv.people.filter(p => p.isChild).length > 0 && (
+                  <div className="text-[10px] text-muted-foreground">
+                    Crianças: {inv.people.filter(p => p.isChild).length}
+                  </div>
+                )}
+              </TableCell>
               <TableCell>{statusSummary(inv)}</TableCell>
               <TableCell>
                 <div className="flex gap-1 justify-end">
@@ -297,29 +305,43 @@ export default function Invitations() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Pessoas</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setPeople([...people, { name: "", phone: "", status: "pending" }])}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPeople([...people, { name: "", phone: "", status: "pending", isChild: false }])}>
                   <Plus className="h-3 w-3 mr-1" /> Adicionar
                 </Button>
               </div>
               {people.map((p, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <Input placeholder="Nome" value={p.name} className="flex-[2]" onChange={(e) => { const u = [...people]; u[i].name = e.target.value; setPeople(u); }} />
-                  <Input placeholder="Telefone" value={p.phone} className="flex-1" onChange={(e) => { const u = [...people]; u[i].phone = e.target.value; setPeople(u); }} />
-                  <Select value={p.status} onValueChange={(v) => { const u = [...people]; u[i].status = v as RSVPStatus; setPeople(u); }}>
-                    <SelectTrigger className={`w-36 text-xs h-9 ${statusColors[p.status]}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="confirmed">Confirmado</SelectItem>
-                      <SelectItem value="declined">Recusado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {people.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setPeople(people.filter((_, j) => j !== i))}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                <div key={i} className="space-y-2 mb-4 p-3 border border-border/50 rounded-lg">
+                  <div className="flex gap-2">
+                    <Input placeholder="Nome" value={p.name} className="flex-[2]" onChange={(e) => { const u = [...people]; u[i].name = e.target.value; setPeople(u); }} />
+                    <Input placeholder="Telefone" value={p.phone} className="flex-1" onChange={(e) => { const u = [...people]; u[i].phone = e.target.value; setPeople(u); }} />
+                    {people.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setPeople(people.filter((_, j) => j !== i))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Select value={p.status} onValueChange={(v) => { const u = [...people]; u[i].status = v as RSVPStatus; setPeople(u); }}>
+                      <SelectTrigger className={`w-36 text-xs h-9 ${statusColors[p.status]}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="confirmed">Confirmado</SelectItem>
+                        <SelectItem value="declined">Recusado</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80">
+                      <input
+                        type="checkbox"
+                        checked={p.isChild}
+                        onChange={(e) => { const u = [...people]; u[i].isChild = e.target.checked; setPeople(u); }}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span>Criança</span>
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>

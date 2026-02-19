@@ -42,6 +42,7 @@ export interface InvitationApi {
     fullName: string;
     phone: string | null;
     status: "PENDING" | "CONFIRMED" | "DECLINED";
+    isChild: boolean;
   }[];
 }
 
@@ -51,7 +52,7 @@ export interface CreateInvitationPayload {
   messageBody?: string;
   /** Fallback URL used when no new coverImage file is uploaded. */
   coverImageUrl?: string;
-  guests?: { fullName: string; phone?: string; status?: RSVPStatus }[];
+  guests?: { fullName: string; phone?: string; status?: RSVPStatus; isChild: boolean }[];
 }
 
 export async function getInvitations(): Promise<InvitationApi[]> {

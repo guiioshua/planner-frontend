@@ -10,6 +10,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Baby, User } from "lucide-react";
 
 const statusLabels: Record<RSVPStatus, string> = {
   pending: "Pendente",
@@ -74,7 +75,8 @@ export default function Guests() {
             <TableHead>Nome</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>Família</TableHead>
-            <TableHead>Tipo</TableHead>
+            <TableHead>Convite</TableHead>
+            <TableHead>Público</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -88,6 +90,17 @@ export default function Guests() {
                 <Badge variant="secondary" className="text-xs">
                   {g.invitationType === "godparent" ? "Padrinho" : "Padrão"}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {g.isChild ? (
+                  <Badge variant="outline" className="text-xs border-primary/30 text-primary flex w-fit items-center gap-1">
+                    <Baby className="h-3 w-3" /> Criança
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs border-muted-foreground/30 text-muted-foreground flex w-fit items-center gap-1">
+                    <User className="h-3 w-3" /> Adulto
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 <Select

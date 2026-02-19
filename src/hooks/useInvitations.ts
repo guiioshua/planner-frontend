@@ -25,6 +25,7 @@ function mapInvitation(api: InvitationApi): Invitation {
       name: g.fullName,
       phone: g.phone ?? "",
       status: g.status.toLowerCase() as RSVPStatus,
+      isChild: g.isChild,
     })),
   };
 }
@@ -89,6 +90,8 @@ export function useInvitations() {
     declinedGuests: allGuests.filter((g) => g.status === "declined").length,
     totalGuests: allGuests.length,
     godparentConfirmed: allGuests.filter((g) => g.invitationType === "godparent" && g.status === "confirmed").length,
+    totalChildren: allGuests.filter((g) => g.isChild).length,
+    confirmedChildren: allGuests.filter((g) => g.isChild && g.status === "confirmed").length,
   };
 
   const addInvitation = (data: Omit<Invitation, "id" | "slug" | "createdAt">, file?: File) => {
@@ -97,7 +100,7 @@ export function useInvitations() {
       type: data.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: data.message,
       coverImageUrl: data.coverImageUrl || undefined,
-      guests: data.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status })),
+      guests: data.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status, isChild: p.isChild })),
     };
     return addMutation.mutateAsync({ payload, file });
   };
@@ -120,7 +123,7 @@ export function useInvitations() {
       messageBody: merged.message,
       // Preserve the existing image URL so it isn't cleared when no new file is selected
       coverImageUrl: merged.coverImageUrl || undefined,
-      guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status })),
+      guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status, isChild: p.isChild })),
     };
 
     return updateMutation.mutateAsync({ id, payload, file });
