@@ -19,6 +19,7 @@ function mapGift(api: GiftApi): Gift {
     purchaseLink: api.purchaseLink ?? "",
     visible: api.visible,
     status: api.status,
+    chosenByFamilyName: api.chosenByFamilyName ?? null,
   };
 }
 
@@ -59,7 +60,8 @@ export function useGifts() {
   });
 
   const chooseMutation = useMutation({
-    mutationFn: (id: string) => chooseGiftApi(id).then(mapGift),
+    mutationFn: ({ id, slug }: { id: string; slug?: string }) =>
+      chooseGiftApi(id, slug).then(mapGift),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gifts"] });
       queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
@@ -90,7 +92,8 @@ export function useGifts() {
   const updateGiftFn = (id: string, data: Partial<Omit<Gift, "id">>) =>
     updateMutation.mutateAsync({ id, data });
   const deleteGift = (id: string) => deleteMutation.mutateAsync(id);
-  const chooseGift = (id: string) => chooseMutation.mutateAsync(id);
+  const chooseGift = (id: string, slug?: string) =>
+    chooseMutation.mutateAsync({ id, slug });
 
   return {
     gifts,

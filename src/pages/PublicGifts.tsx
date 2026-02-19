@@ -57,7 +57,7 @@ export default function PublicGifts() {
   async function handleChoose(id: string) {
     setChoosingId(id);
     try {
-      await chooseGift(id);
+      await chooseGift(id, slug);
       toast.success("Obrigado! O presente foi marcado como escolhido.");
     } catch (error) {
       console.error(error);

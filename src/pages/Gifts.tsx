@@ -93,6 +93,12 @@ export default function Gifts() {
                 )}
               </div>
 
+              {g.status === "CHOSEN" && g.chosenByFamilyName && (
+                <p className="text-xs text-muted-foreground">
+                  Escolhido por: <span className="font-medium">{g.chosenByFamilyName}</span>
+                </p>
+              )}
+
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                   <Switch checked={g.visible} onCheckedChange={() => toggleVisible(g.id)} />

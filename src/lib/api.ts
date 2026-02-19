@@ -124,6 +124,7 @@ export interface GiftApi {
   imageUrl: string | null;
   status: "AVAILABLE" | "CHOSEN";
   visible: boolean;
+  chosenByFamilyName?: string | null;
 }
 
 export async function getGifts(): Promise<GiftApi[]> {
@@ -160,9 +161,10 @@ export async function updateGift(id: string, payload: Partial<Omit<Gift, "id">>)
   });
 }
 
-export async function chooseGiftApi(id: string): Promise<GiftApi> {
+export async function chooseGiftApi(id: string, invitationSlug?: string): Promise<GiftApi> {
   return http<GiftApi>(`/gifts/${id}/choose`, {
     method: "PATCH",
+    body: JSON.stringify({ invitationSlug: invitationSlug ?? null }),
   });
 }
 

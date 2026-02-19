@@ -28,6 +28,7 @@ export interface Gift {
   purchaseLink: string;
   visible: boolean;
   status: GiftStatus;
+  chosenByFamilyName?: string | null;
 }
 
 export interface Vendor {
