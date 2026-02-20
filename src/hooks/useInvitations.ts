@@ -1,35 +1,15 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Invitation, Person, RSVPStatus } from "@/types";
+import { Invitation, RSVPStatus, GuestWithMeta, InvitationStats } from "@/types";
 import {
   confirmRsvp,
   createInvitation,
   deleteInvitation,
   getInvitations,
   updateInvitation,
-  type InvitationApi,
   type CreateInvitationPayload,
 } from "@/lib/api";
-
-function mapInvitation(api: InvitationApi): Invitation {
-  return {
-    id: api.id,
-    slug: api.slug,
-    familyName: api.familyName,
-    type: api.type === "GODPARENT" ? "godparent" : "standard",
-    coverImageUrl: api.coverImageUrl ?? "",
-    message: api.messageBody ?? "",
-    categories: api.categories ?? ["A"],
-    createdAt: api.createdAt,
-    people: api.guests.map((g) => ({
-      id: g.id,
-      name: g.fullName,
-      phone: g.phone ?? "",
-      status: g.status.toLowerCase() as RSVPStatus,
-      isChild: g.isChild,
-    })),
-  };
-}
+import { mapInvitation } from "@/lib/mappers";
 
 export function useInvitations() {
   const queryClient = useQueryClient();
@@ -80,11 +60,11 @@ export function useInvitations() {
     [invitations]
   );
 
-  const allGuests = invitations.flatMap((inv) =>
+  const allGuests: GuestWithMeta[] = invitations.flatMap((inv) =>
     inv.people.map((p) => ({ ...p, familyName: inv.familyName, invitationType: inv.type, invitationId: inv.id, invitationSlug: inv.slug }))
   );
 
-  const stats = {
+  const stats: InvitationStats = {
     totalInvitations: invitations.length,
     confirmedGuests: allGuests.filter((g) => g.status === "confirmed").length,
     pendingGuests: allGuests.filter((g) => g.status === "pending").length,
@@ -108,12 +88,6 @@ export function useInvitations() {
   };
 
   const updateInvitationFn = (id: string, data: Partial<Omit<Invitation, "id" | "slug">>, file?: File) => {
-    // We need to construct a full payload for update because the API expects full object or at least we need to merge
-    // But since the UI provides full state, we can merge with existing if needed, or better, the UI should provide complete data.
-    // However, the `updateInvitation` function in api.ts takes `CreateInvitationPayload`.
-    // We'll rely on the caller to provide complete data or merge with current locally before calling.
-
-    // To support partial updates properly we should merge with current data here like before
     const current = invitations.find((i) => i.id === id);
     if (!current) throw new Error("Convite não encontrado");
 
@@ -124,7 +98,6 @@ export function useInvitations() {
       type: merged.type === "godparent" ? "GODPARENT" : "STANDARD",
       messageBody: merged.message,
       categories: merged.categories,
-      // Preserve the existing image URL so it isn't cleared when no new file is selected
       coverImageUrl: merged.coverImageUrl || undefined,
       guests: merged.people.map(p => ({ fullName: p.name, phone: p.phone, status: p.status, isChild: p.isChild })),
     };

@@ -2,8 +2,9 @@ import { useApp } from "@/context/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
-import { Mail, Users, Clock, UserX, Heart, DollarSign, Plus } from "lucide-react";
+import { Mail, Users, Clock, UserX, Heart, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { formatCurrency } from "@/lib/utils";
 
 export default function Dashboard() {
   const { stats, budgetStats } = useApp();
@@ -16,9 +17,6 @@ export default function Dashboard() {
     { label: "Recusados", value: stats.declinedGuests, icon: UserX },
     { label: "Padrinhos Confirmados", value: stats.godparentConfirmed, icon: Heart },
   ];
-
-  const formatCurrency = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
     <div className="space-y-10">

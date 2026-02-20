@@ -2,19 +2,15 @@ import { useParams } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useRsvpBySlug } from "@/hooks/useRsvpBySlug";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
-import { ExternalLink, Loader2, Check } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { PublicGiftCard } from "@/components/PublicGiftCard";
+import { GiftConfirmDialog } from "@/components/public/GiftConfirmDialog";
 
 export default function PublicGifts() {
   const { slug } = useParams<{ slug: string }>();
-  // We use visibleGifts from context (which fetches from API via useGifts hook)
   const { visibleGifts, chooseGift } = useApp();
   const { data: invitation, isLoading } = useRsvpBySlug(slug);
 
@@ -29,10 +25,6 @@ export default function PublicGifts() {
     );
   }
 
-  // If fetching invitation fails or doesn't exist, we likely shouldn't show the gifts or at least prompt to RSVP?
-  // PRD says: "Após o convidado confirmar presença ... o sistema deve exibir um botão ... Ver Lista de Presentes".
-  // "Se o convidado acessar o link do convite novamente e já estiver confirmado, a lista deve estar visível imediatamente."
-
   if (!invitation) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -42,14 +34,10 @@ export default function PublicGifts() {
   }
 
   const hasConfirmed = invitation.people.some((p) => p.status === "confirmed");
-  console.log("Invitation Categories:", invitation.categories);
-  console.log("Visible Gifts Categories:", visibleGifts.map(g => g.category));
 
-  const displayedGifts = visibleGifts.filter((g) => {
-    const match = invitation.categories?.includes(g.category);
-    console.log(`Gift ${g.name} (cat: ${g.category}) matches? ${match}`);
-    return match;
-  });
+  const displayedGifts = visibleGifts.filter((g) =>
+    invitation.categories?.includes(g.category)
+  );
 
   if (!hasConfirmed) {
     return (
@@ -90,76 +78,25 @@ export default function PublicGifts() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedGifts.map((g) => {
-            const isChosen = g.status === "CHOSEN";
-            return (
-              <Card key={g.id} className={`border border-border/50 shadow-none overflow-hidden ${isChosen ? "opacity-75" : ""}`}>
-                {g.imageUrl && (
-                  <div className="aspect-[4/3] overflow-hidden relative">
-                    <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover" />
-                    {isChosen && (
-                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                        <Badge variant="secondary" className="text-sm font-medium shadow-md">ESCOLHIDO</Badge>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <CardContent className="p-4 space-y-3">
-                  <h3 className="font-serif text-lg leading-tight">{g.name}</h3>
-
-                  <div className="flex flex-col gap-2 pt-2">
-                    {g.purchaseLink && (
-                      <Button variant="outline" className="w-full border-foreground/20" asChild>
-                        <a href={g.purchaseLink} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4 mr-2" /> Ver na Loja
-                        </a>
-                      </Button>
-                    )}
-
-                    <Button
-                      className={`w-full ${isChosen ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
-                      disabled={isChosen || choosingId === g.id}
-                      onClick={() => setConfirmGiftId(g.id)}
-                      variant={isChosen ? "ghost" : "default"}
-                    >
-                      {isChosen ? (
-                        <><Check className="h-4 w-4 mr-2" /> Escolhido </>
-                      ) : choosingId === g.id ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aguarde...</>
-                      ) : (
-                        "Escolher esse Presente"
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {displayedGifts.map((g) => (
+            <PublicGiftCard
+              key={g.id}
+              gift={g}
+              isChoosing={choosingId === g.id}
+              onChoose={(id) => setConfirmGiftId(id)}
+            />
+          ))}
         </div>
 
         <BotanicalAccent variant="branch" className="w-48 mx-auto mt-16 opacity-20" />
       </div>
 
-      {/* Confirmation Modal */}
-      <Dialog open={!!confirmGiftId} onOpenChange={(open) => { if (!open) setConfirmGiftId(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-serif">Confirmar escolha</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja escolher este presente? Após confirmado, ele ficará marcado como escolhido para todos os convidados.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setConfirmGiftId(null)}>Cancelar</Button>
-            <Button
-              onClick={() => confirmGiftId && handleChoose(confirmGiftId)}
-              disabled={!!choosingId}
-            >
-              {choosingId ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aguarde...</> : "Confirmar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <GiftConfirmDialog
+        open={!!confirmGiftId}
+        isChoosing={!!choosingId}
+        onConfirm={() => confirmGiftId && handleChoose(confirmGiftId)}
+        onCancel={() => setConfirmGiftId(null)}
+      />
     </div>
   );
 }

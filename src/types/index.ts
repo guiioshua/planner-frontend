@@ -44,3 +44,29 @@ export interface Vendor {
   amountPaid: number;
   notes: string;
 }
+
+/** Guest row enriched with invitation context — produced by useInvitations. */
+export interface GuestWithMeta extends Person {
+  familyName: string;
+  invitationType: InvitationType;
+  invitationId: string;
+  invitationSlug: string;
+}
+
+export interface BudgetStats {
+  totalBudget: number;
+  servicesTotal: number;
+  totalPaid: number;
+  remaining: number;
+}
+
+export interface InvitationStats {
+  totalInvitations: number;
+  confirmedGuests: number;
+  pendingGuests: number;
+  declinedGuests: number;
+  totalGuests: number;
+  godparentConfirmed: number;
+  totalChildren: number;
+  confirmedChildren: number;
+}

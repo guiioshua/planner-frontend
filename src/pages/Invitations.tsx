@@ -1,58 +1,22 @@
-import { useState, ClipboardEvent, useRef } from "react";
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Invitation, InvitationType, RSVPStatus } from "@/types";
+import { Invitation, InvitationType } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
-} from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table, TableBody, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Plus, Copy, MessageCircle, Pencil, Trash2, X, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { InvitationTableRow } from "@/components/invitations/InvitationTableRow";
+import { InvitationFormDialog } from "@/components/invitations/InvitationFormDialog";
 
 type FilterTab = "all" | "standard" | "godparent";
-const statusLabels: Record<RSVPStatus, string> = {
-  pending: "Pendente",
-  confirmed: "Confirmado",
-  declined: "Recusado",
-};
-
-const statusColors: Record<RSVPStatus, string> = {
-  pending: "bg-warning/20 text-warning border-warning/30",
-  confirmed: "bg-success/20 text-success border-success/30",
-  declined: "bg-destructive/20 text-destructive border-destructive/30",
-};
 
 export default function Invitations() {
   const { invitations, addInvitation, updateInvitation, deleteInvitation } = useApp();
   const [filter, setFilter] = useState<FilterTab>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Invitation | null>(null);
-
-  // Form state
-  const [familyName, setFamilyName] = useState("");
-  const [type, setType] = useState<InvitationType>("standard");
-  const [message, setMessage] = useState("");
-  const [categories, setCategories] = useState("A");
-  const [people, setPeople] = useState<{ name: string; phone: string; status: RSVPStatus; isChild: boolean }[]>([{ name: "", phone: "", status: "pending", isChild: false }]);
-
-  // Image handling
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = filter === "all" ? invitations : invitations.filter((i) => i.type === filter);
 
@@ -62,80 +26,23 @@ export default function Invitations() {
     { key: "godparent", label: "Padrinhos" },
   ];
 
-  function resetForm() {
-    setFamilyName("");
-    setType("standard");
-    setMessage("");
-    setCategories("A");
-    setPeople([{ name: "", phone: "", status: "pending", isChild: false }]);
-    setCoverImageFile(null);
-    setPreviewUrl("");
-  }
-
   function openCreate() {
     setEditing(null);
-    resetForm();
     setDialogOpen(true);
   }
 
   function openEdit(inv: Invitation) {
     setEditing(inv);
-    setFamilyName(inv.familyName);
-    setType(inv.type);
-    setMessage(inv.message);
-    setCategories(inv.categories ? inv.categories.join(", ") : "A");
-    setPeople(inv.people.map((p) => ({ name: p.name, phone: p.phone, status: p.status, isChild: p.isChild })));
-    setPreviewUrl(inv.coverImageUrl);
-    setCoverImageFile(null); // Reset file if editing, unless user picks a new one
     setDialogOpen(true);
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setCoverImageFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  }
-
-  function handlePaste(e: ClipboardEvent) {
-    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-      const file = e.clipboardData.files[0];
-      if (file.type.startsWith("image/")) {
-        setCoverImageFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
-        e.preventDefault();
-      }
-    }
-  }
-
-  async function handleSave() {
-    const validPeople = people.filter((p) => p.name.trim());
-    if (!familyName.trim()) return;
-
+  async function handleSave(data: Omit<Invitation, "id" | "slug" | "createdAt">, file?: File) {
     try {
-      const payload = {
-        familyName,
-        type,
-        message, // Note: coverImageUrl is not passed in payload explicitly for update unless needed, but here we rely on file or existing
-        categories: categories.split(",").map(c => c.trim()).filter(c => c),
-        coverImageUrl: editing?.coverImageUrl || "", // Satisfy type requirement
-        people: validPeople.map((p) => ({
-          id: crypto.randomUUID(), // Optimistic ID, hook handles logic
-          name: p.name,
-          phone: p.phone,
-          status: p.status,
-          isChild: p.isChild,
-        })),
-      };
-
       if (editing) {
-        // For update, we pass the file if it exists. 
-        // Logic in useInvitations will handle partial updates.
-        await updateInvitation(editing.id, payload, coverImageFile || undefined);
+        await updateInvitation(editing.id, data, file);
         toast.success("Convite atualizado");
       } else {
-        await addInvitation(payload, coverImageFile || undefined);
+        await addInvitation(data, file);
         toast.success("Convite criado");
       }
       setDialogOpen(false);
@@ -143,6 +50,11 @@ export default function Invitations() {
       console.error(error);
       toast.error("Erro ao salvar convite");
     }
+  }
+
+  function handleDelete(id: string) {
+    deleteInvitation(id);
+    toast.success("Convite removido");
   }
 
   function copyLink(slug: string) {
@@ -154,7 +66,7 @@ export default function Invitations() {
   function shareWhatsApp(inv: Invitation) {
     const url = `${window.location.origin}/rsvp/${inv.slug}`;
     const firstPerson = inv.people[0];
-    const phone = firstPerson?.phone?.replace(/\D/g, ""); // Remove non-digits
+    const phone = firstPerson?.phone?.replace(/\D/g, "");
 
     const customMessage = inv.message?.trim();
     const text = encodeURIComponent(
@@ -168,12 +80,6 @@ export default function Invitations() {
     } else {
       window.open(`https://wa.me/?text=${text}`, "_blank");
     }
-  }
-
-  function statusSummary(inv: Invitation) {
-    const c = inv.people.filter((p) => p.status === "confirmed").length;
-    const t = inv.people.length;
-    return `${c}/${t}`;
   }
 
   return (
@@ -212,199 +118,19 @@ export default function Invitations() {
         </TableHeader>
         <TableBody>
           {filtered.map((inv) => (
-            <TableRow key={inv.id}>
-              <TableCell className="font-medium">{inv.familyName}</TableCell>
-              <TableCell>
-                <Badge variant={inv.type === "godparent" ? "default" : "secondary"} className="text-xs">
-                  {inv.type === "godparent" ? "Padrinho" : "Padrão"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {inv.categories && inv.categories.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">
-                    {inv.categories.map(c => <Badge key={c} variant="outline" className="text-[9px] px-1 h-4">{c}</Badge>)}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>
-                <div>{inv.people.length}</div>
-                {inv.people.filter(p => p.isChild).length > 0 && (
-                  <div className="text-[10px] text-muted-foreground">
-                    Crianças: {inv.people.filter(p => p.isChild).length}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>{statusSummary(inv)}</TableCell>
-              <TableCell>
-                <div className="flex gap-1 justify-end">
-                  <Button variant="ghost" size="icon" onClick={() => copyLink(inv.slug)} title="Copiar link">
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => shareWhatsApp(inv)} title="WhatsApp">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Editar">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => { deleteInvitation(inv.id); toast.success("Convite removido"); }} title="Excluir">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
+            <InvitationTableRow
+              key={inv.id}
+              invitation={inv}
+              onCopyLink={copyLink}
+              onWhatsApp={shareWhatsApp}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
           ))}
         </TableBody>
       </Table>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" onPaste={handlePaste}>
-          <DialogHeader>
-            <DialogTitle className="font-serif">{editing ? "Editar Convite" : "Novo Convite"}</DialogTitle>
-            <DialogDescription>Preencha os dados. Cole uma imagem (Ctrl+V) para a capa.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Nome da Família</Label>
-              <Input value={familyName} onChange={(e) => setFamilyName(e.target.value)} placeholder="Família Silva" />
-            </div>
-            <div>
-              <Label>Convidado ou Padrinho</Label>
-              <Select value={type} onValueChange={(v) => setType(v as InvitationType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="standard">Padrão (Convidado)</SelectItem>
-                  <SelectItem value="godparent">Padrinho</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <Label>Categorias</Label>
-                <TooltipProvider delayDuration={100}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-[220px] text-xs leading-snug">
-                      Quem receber esse convite verá apenas os presentes das categorias atribuídas a ele. Use para segmentar por faixa de preço ou perfil. Um convidado pode pertencer a várias categorias.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Input value={categories} onChange={(e) => setCategories(e.target.value)} placeholder="Ex: Barato, Médio, Caro" />
-              <p className="text-[10px] text-muted-foreground">Separe por vírgula (ex: Barato, Médio, Caro)</p>
-            </div>
-
-            {/* Image Upload Area */}
-            <div>
-              <Label>Imagem de Capa</Label>
-              <div
-                className="mt-1 border-2 border-dashed border-border/50 rounded-md p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
-
-                {previewUrl ? (
-                  <div className="relative w-full aspect-video rounded overflow-hidden mb-2">
-                    <img src={previewUrl} alt="Capa" className="w-full h-full object-cover" />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-6 w-6"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewUrl("");
-                        setCoverImageFile(null);
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center py-4 text-muted-foreground">
-                    <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
-                    <p className="text-sm">Clique para upload ou Ctrl+V</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label>Mensagem Personalizada</Label>
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={3}
-                placeholder="Ex: Família Silva, é com enorme alegria que os convidamos para celebrar nosso casamento. Confirme sua presença pelo link abaixo 💌"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Esta mensagem será usada no envio pelo WhatsApp.</p>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Pessoas</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setPeople([...people, { name: "", phone: "", status: "pending", isChild: false }])}>
-                  <Plus className="h-3 w-3 mr-1" /> Adicionar
-                </Button>
-              </div>
-
-              <Alert className="mb-4 py-2 bg-muted/50 border-dashed">
-                <Info className="h-4 w-4" />
-                <AlertDescription className="text-xs text-muted-foreground ml-2">
-                  Convidados podem adicionar e confirmar acompanhantes diretamente na página de RSVP pública.
-                </AlertDescription>
-              </Alert>
-
-              {people.map((p, i) => (
-                <div key={i} className="space-y-2 mb-4 p-3 border border-border/50 rounded-lg">
-                  <div className="flex gap-2">
-                    <Input placeholder="Nome" value={p.name} className="flex-[2]" onChange={(e) => { const u = [...people]; u[i].name = e.target.value; setPeople(u); }} />
-                    <Input placeholder="Telefone" value={p.phone} className="flex-1" onChange={(e) => { const u = [...people]; u[i].phone = e.target.value; setPeople(u); }} />
-                    {people.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => setPeople(people.filter((_, j) => j !== i))}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Select value={p.status} onValueChange={(v) => { const u = [...people]; u[i].status = v as RSVPStatus; setPeople(u); }}>
-                      <SelectTrigger className={`w-36 text-xs h-9 ${statusColors[p.status]}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="confirmed">Confirmado</SelectItem>
-                        <SelectItem value="declined">Recusado</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80">
-                      <input
-                        type="checkbox"
-                        checked={p.isChild}
-                        onChange={(e) => { const u = [...people]; u[i].isChild = e.target.checked; setPeople(u); }}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <span>Criança</span>
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editing ? "Salvar" : "Criar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div >
+      <InvitationFormDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} onSave={handleSave} />
+    </div>
   );
 }

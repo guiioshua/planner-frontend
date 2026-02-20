@@ -8,21 +8,8 @@ import {
   getGifts,
   updateGift,
   chooseGiftApi,
-  type GiftApi,
 } from "@/lib/api";
-
-function mapGift(api: GiftApi): Gift {
-  return {
-    id: api.id,
-    name: api.name,
-    imageUrl: api.imageUrl ?? "",
-    purchaseLink: api.purchaseLink ?? "",
-    visible: api.visible,
-    category: api.category ?? "A",
-    status: api.status,
-    chosenByFamilyName: api.chosenByFamilyName ?? null,
-  };
-}
+import { mapGift } from "@/lib/mappers";
 
 export function useGifts() {
   const queryClient = useQueryClient();

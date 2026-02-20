@@ -1,26 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Vendor } from "@/types";
+import { Vendor, BudgetStats } from "@/types";
 import {
   createVendor,
   deleteVendorApi,
   getVendors,
   updateVendorApi,
-  type VendorApi,
 } from "@/lib/api";
-
-function mapVendor(api: VendorApi): Vendor {
-  return {
-    id: api.id,
-    company: api.companyName,
-    category: api.serviceCategory,
-    contact: api.contactName ?? "",
-    phone: api.contactPhone ?? "",
-    totalPrice: api.price,
-    amountPaid: api.amountPaid ?? 0,
-    notes: api.notes ?? "",
-  };
-}
+import { mapVendor } from "@/lib/mappers";
 
 export function useVendors() {
   const queryClient = useQueryClient();
@@ -61,7 +48,7 @@ export function useVendors() {
   const servicesTotal = vendors.reduce((s, v) => s + v.totalPrice, 0);
   const totalPaid = vendors.reduce((s, v) => s + v.amountPaid, 0);
 
-  const budgetStats = {
+  const budgetStats: BudgetStats = {
     totalBudget,
     servicesTotal,
     totalPaid,
