@@ -30,7 +30,7 @@ export function InvitationFormDialog({ open, onOpenChange, editing, onSave }: In
     const [familyName, setFamilyName] = useState("");
     const [type, setType] = useState<InvitationType>("standard");
     const [message, setMessage] = useState("");
-    const [categories, setCategories] = useState("A");
+    const [categories, setCategories] = useState("");
     const [people, setPeople] = useState<PersonFormData[]>([{ name: "", phone: "", status: "pending", isChild: false }]);
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>("");
@@ -44,7 +44,7 @@ export function InvitationFormDialog({ open, onOpenChange, editing, onSave }: In
                 setFamilyName(editing.familyName);
                 setType(editing.type);
                 setMessage(editing.message);
-                setCategories(editing.categories ? editing.categories.join(", ") : "A");
+                setCategories(editing.categories ? editing.categories.join(", ") : "");
                 setPeople(editing.people.map((p) => ({ name: p.name, phone: p.phone, status: p.status, isChild: p.isChild })));
                 setPreviewUrl(editing.coverImageUrl);
                 setCoverImageFile(null);
@@ -52,7 +52,7 @@ export function InvitationFormDialog({ open, onOpenChange, editing, onSave }: In
                 setFamilyName("");
                 setType("standard");
                 setMessage("");
-                setCategories("A");
+                setCategories("");
                 setPeople([{ name: "", phone: "", status: "pending", isChild: false }]);
                 setCoverImageFile(null);
                 setPreviewUrl("");
@@ -95,11 +95,13 @@ export function InvitationFormDialog({ open, onOpenChange, editing, onSave }: In
         const validPeople = people.filter((p) => p.name.trim());
         if (!familyName.trim()) return;
 
+        const resolvedCategories = categories.split(",").map(c => c.trim()).filter(c => c);
+
         const payload: Omit<Invitation, "id" | "slug" | "createdAt"> = {
             familyName,
             type,
             message,
-            categories: categories.split(",").map(c => c.trim()).filter(c => c),
+            categories: resolvedCategories.length > 0 ? resolvedCategories : ["Padrão"],
             coverImageUrl: editing?.coverImageUrl || "",
             people: validPeople.map((p) => ({
                 id: crypto.randomUUID(), // Placeholder — server assigns the canonical ID

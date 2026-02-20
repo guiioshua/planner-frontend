@@ -20,7 +20,7 @@ export function GiftFormDialog({ open, onOpenChange, editing, onSave }: GiftForm
     const [imageUrl, setImageUrl] = useState("");
     const [purchaseLink, setPurchaseLink] = useState("");
     const [visible, setVisible] = useState(true);
-    const [category, setCategory] = useState("A");
+    const [category, setCategory] = useState("");
 
     useEffect(() => {
         if (open) {
@@ -29,20 +29,21 @@ export function GiftFormDialog({ open, onOpenChange, editing, onSave }: GiftForm
                 setImageUrl(editing.imageUrl);
                 setPurchaseLink(editing.purchaseLink);
                 setVisible(editing.visible);
-                setCategory(editing.category);
+                setCategory(editing.category ?? "");
             } else {
                 setName("");
                 setImageUrl("");
                 setPurchaseLink("");
                 setVisible(true);
-                setCategory("A");
+                setCategory("");
             }
         }
     }, [open, editing]);
 
     function handleSave() {
         if (!name.trim()) return;
-        onSave({ name, imageUrl, purchaseLink, visible, category, status: editing?.status ?? "AVAILABLE", chosenByFamilyName: editing?.chosenByFamilyName ?? null });
+        const resolvedCategory = category.trim() || "Padrão";
+        onSave({ name, imageUrl, purchaseLink, visible, category: resolvedCategory, status: editing?.status ?? "AVAILABLE", chosenByFamilyName: editing?.chosenByFamilyName ?? null });
     }
 
     return (
