@@ -153,6 +153,7 @@ export async function getVisibleGifts(): Promise<GiftApi[]> {
 
 export async function createGift(payload: Omit<Gift, "id">): Promise<GiftApi> {
   console.log("createGift payload:", payload);
+  // Ensure category is included in the body
   return http<GiftApi>("/gifts", {
     method: "POST",
     body: JSON.stringify({
@@ -160,12 +161,14 @@ export async function createGift(payload: Omit<Gift, "id">): Promise<GiftApi> {
       purchaseLink: payload.purchaseLink,
       imageUrl: payload.imageUrl,
       visible: payload.visible,
+      category: payload.category, // Added category
       status: payload.status,
     }),
   });
 }
 
 export async function updateGift(id: string, payload: Partial<Omit<Gift, "id">>): Promise<GiftApi> {
+  // Ensure category is included in the body
   return http<GiftApi>(`/gifts/${id}`, {
     method: "PUT",
     body: JSON.stringify({
@@ -173,6 +176,7 @@ export async function updateGift(id: string, payload: Partial<Omit<Gift, "id">>)
       purchaseLink: payload.purchaseLink,
       imageUrl: payload.imageUrl,
       visible: payload.visible,
+      category: payload.category, // Added category
       status: payload.status,
     }),
   });
@@ -240,4 +244,3 @@ export async function updateVendorApi(id: string, payload: Partial<Omit<Vendor, 
 export async function deleteVendorApi(id: string): Promise<void> {
   return http<void>(`/vendors/${id}`, { method: "DELETE" });
 }
-

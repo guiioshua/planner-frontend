@@ -10,6 +10,7 @@ function mapInvitation(api: InvitationApi): Invitation {
         type: api.type === "GODPARENT" ? "godparent" : "standard",
         coverImageUrl: api.coverImageUrl ?? "",
         message: api.messageBody ?? "",
+        categories: api.categories ?? ["A"],
         createdAt: api.createdAt,
         people: api.guests.map((g) => ({
             id: g.id,

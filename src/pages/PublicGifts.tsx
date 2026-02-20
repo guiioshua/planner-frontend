@@ -38,9 +38,14 @@ export default function PublicGifts() {
   }
 
   const hasConfirmed = invitation.people.some((p) => p.status === "confirmed");
-  const displayedGifts = visibleGifts.filter((g) =>
-    invitation.categories?.includes(g.category)
-  );
+  console.log("Invitation Categories:", invitation.categories);
+  console.log("Visible Gifts Categories:", visibleGifts.map(g => g.category));
+
+  const displayedGifts = visibleGifts.filter((g) => {
+    const match = invitation.categories?.includes(g.category);
+    console.log(`Gift ${g.name} (cat: ${g.category}) matches? ${match}`);
+    return match;
+  });
 
   if (!hasConfirmed) {
     return (
