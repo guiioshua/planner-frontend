@@ -53,12 +53,21 @@ export function GiftFormDialog({ open, onOpenChange, editing, onSave }: GiftForm
                     <DialogDescription>Preencha os dados do presente.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                    <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-                    <div><Label>URL da Imagem</Label><Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} /></div>
+                    <div><Label>Nome do Produto</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+                    <div>
+                        <Label>URL da Imagem</Label>
+                        <Input
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="Clique com o botão direito na imagem → 'Copiar endereço da imagem'"
+                            className="placeholder:text-[10px]"
+                        />
+                    </div>
                     <div><Label>URL de Compra</Label><Input value={purchaseLink} onChange={(e) => setPurchaseLink(e.target.value)} /></div>
                     <div>
                         <Label>Categoria</Label>
-                        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: A, B, C" />
+                        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Utensílios, Móveis, Decoração" />
+                        <p className="text-[10px] text-muted-foreground mt-1">Separe por vírgula (ex: Utensílios, Móveis, Decoração)</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Switch checked={visible} onCheckedChange={setVisible} />
