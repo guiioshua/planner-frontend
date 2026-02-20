@@ -221,7 +221,9 @@ export default function PublicRSVP() {
       )}
 
       <h1 className="font-serif text-3xl mb-2 text-center">{invitation.familyName}</h1>
-      <p className="text-muted-foreground text-center max-w-md mb-10 leading-relaxed">{invitation.message}</p>
+      <p className="text-muted-foreground text-center max-w-md mb-10 leading-relaxed">
+        {invitation.familyName}, temos um convite especial para você 💌
+      </p>
 
       <div className="w-full max-w-md space-y-4 mb-10">
         <h2 className="font-serif text-lg mb-2">Confirme a presença</h2>

@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { ExternalLink, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -16,6 +19,7 @@ export default function PublicGifts() {
   const { data: invitation, isLoading } = useRsvpBySlug(slug);
 
   const [choosingId, setChoosingId] = useState<string | null>(null);
+  const [confirmGiftId, setConfirmGiftId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -63,6 +67,7 @@ export default function PublicGifts() {
   }
 
   async function handleChoose(id: string) {
+    setConfirmGiftId(null);
     setChoosingId(id);
     try {
       await chooseGift(id, slug);
@@ -114,13 +119,15 @@ export default function PublicGifts() {
                     <Button
                       className={`w-full ${isChosen ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
                       disabled={isChosen || choosingId === g.id}
-                      onClick={() => handleChoose(g.id)}
+                      onClick={() => setConfirmGiftId(g.id)}
                       variant={isChosen ? "ghost" : "default"}
                     >
                       {isChosen ? (
                         <><Check className="h-4 w-4 mr-2" /> Escolhido </>
+                      ) : choosingId === g.id ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aguarde...</>
                       ) : (
-                        "Presentear"
+                        "Escolher esse Presente"
                       )}
                     </Button>
                   </div>
@@ -132,6 +139,27 @@ export default function PublicGifts() {
 
         <BotanicalAccent variant="branch" className="w-48 mx-auto mt-16 opacity-20" />
       </div>
+
+      {/* Confirmation Modal */}
+      <Dialog open={!!confirmGiftId} onOpenChange={(open) => { if (!open) setConfirmGiftId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Confirmar escolha</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja escolher este presente? Após confirmado, ele ficará marcado como escolhido para todos os convidados.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmGiftId(null)}>Cancelar</Button>
+            <Button
+              onClick={() => confirmGiftId && handleChoose(confirmGiftId)}
+              disabled={!!choosingId}
+            >
+              {choosingId ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aguarde...</> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -17,6 +17,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Plus, Copy, MessageCircle, Pencil, Trash2, X, Upload, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -153,7 +156,12 @@ export default function Invitations() {
     const firstPerson = inv.people[0];
     const phone = firstPerson?.phone?.replace(/\D/g, ""); // Remove non-digits
 
-    const text = encodeURIComponent(`${inv.familyName}, confirme sua presença: ${url}`);
+    const customMessage = inv.message?.trim();
+    const text = encodeURIComponent(
+      customMessage
+        ? `${customMessage}\n\n${url}`
+        : `${inv.familyName}, confirme sua presença: ${url}`
+    );
 
     if (phone) {
       window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
@@ -260,19 +268,31 @@ export default function Invitations() {
               <Input value={familyName} onChange={(e) => setFamilyName(e.target.value)} placeholder="Família Silva" />
             </div>
             <div>
-              <Label>Tipo</Label>
+              <Label>Convidado ou Padrinho</Label>
               <Select value={type} onValueChange={(v) => setType(v as InvitationType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="standard">Padrão</SelectItem>
+                  <SelectItem value="standard">Padrão (Convidado)</SelectItem>
                   <SelectItem value="godparent">Padrinho</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Categorias</Label>
-              <Input value={categories} onChange={(e) => setCategories(e.target.value)} placeholder="Ex: A, B" />
-              <p className="text-[10px] text-muted-foreground">Separe por vírgula (A, B, C...)</p>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Label>Categorias</Label>
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[220px] text-xs leading-snug">
+                      Quem receber esse convite verá apenas os presentes das categorias atribuídas a ele. Use para segmentar por faixa de preço ou perfil. Um convidado pode pertencer a várias categorias.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input value={categories} onChange={(e) => setCategories(e.target.value)} placeholder="Ex: Barato, Médio, Caro" />
+              <p className="text-[10px] text-muted-foreground">Separe por vírgula (ex: Barato, Médio, Caro)</p>
             </div>
 
             {/* Image Upload Area */}
@@ -318,7 +338,13 @@ export default function Invitations() {
 
             <div>
               <Label>Mensagem Personalizada</Label>
-              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={3}
+                placeholder="Ex: Família Silva, é com enorme alegria que os convidamos para celebrar nosso casamento. Confirme sua presença pelo link abaixo 💌"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Esta mensagem será usada no envio pelo WhatsApp.</p>
             </div>
 
             <div>
