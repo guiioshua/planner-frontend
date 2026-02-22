@@ -16,8 +16,8 @@ export function GiftCard({ gift: g, onEdit, onDelete, onToggleVisible }: GiftCar
     return (
         <Card className={`border border-border/50 shadow-none overflow-hidden ${!g.visible ? "opacity-60" : ""}`}>
             {g.imageUrl && (
-                <div className="aspect-[4/3] overflow-hidden relative">
-                    <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover" />
+                <div className="aspect-[4/3] overflow-hidden relative bg-muted/20">
+                    <img src={g.imageUrl} alt={g.name} className="w-full h-full object-contain" />
                     {g.status === "CHOSEN" && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <Badge variant="secondary" className="text-sm font-medium">ESCOLHIDO</Badge>

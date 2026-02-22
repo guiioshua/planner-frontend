@@ -16,8 +16,8 @@ export function PublicGiftCard({ gift: g, isChoosing, onChoose }: PublicGiftCard
     return (
         <Card className={`border border-border/50 shadow-none overflow-hidden ${isChosen ? "opacity-75" : ""}`}>
             {g.imageUrl && (
-                <div className="aspect-[4/3] overflow-hidden relative">
-                    <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover" />
+                <div className="aspect-[4/3] overflow-hidden relative bg-muted/20">
+                    <img src={g.imageUrl} alt={g.name} className="w-full h-full object-contain" />
                     {isChosen && (
                         <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
                             <Badge variant="secondary" className="text-sm font-medium shadow-md">ESCOLHIDO</Badge>
