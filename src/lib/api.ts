@@ -1,6 +1,10 @@
 import { Invitation, Gift, Vendor, RSVPStatus, GiftStatus } from "@/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
+const API_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081/api/v1";
+
+if (!import.meta.env.VITE_API_BASE_URL && import.meta.env.DEV) {
+  console.warn("VITE_API_BASE_URL is not defined. Falling back to localhost for development.");
+}
 
 async function http<T>(input: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -10,7 +14,7 @@ async function http<T>(input: string, init?: RequestInit): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(`${API_BASE_URL}${input}`, {
+  const res = await fetch(`${API_URL}${input}`, {
     ...init,
     headers,
   });
