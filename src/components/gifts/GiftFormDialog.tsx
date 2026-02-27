@@ -67,8 +67,8 @@ export function GiftFormDialog({ open, onOpenChange, editing, onSave }: GiftForm
                     <div><Label>URL de Compra</Label><Input value={purchaseLink} onChange={(e) => setPurchaseLink(e.target.value)} /></div>
                     <div>
                         <Label>Categoria</Label>
-                        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Utensílios, Móveis, Decoração" />
-                        <p className="text-[10px] text-muted-foreground mt-1">Separe por vírgula (ex: Utensílios, Móveis, Decoração)</p>
+                        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: A, Barato, Utensílios" />
+                        <p className="text-[10px] text-muted-foreground mt-1">Uma única categoria. Deve coincidir com uma das categorias do convite.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Switch checked={visible} onCheckedChange={setVisible} />
