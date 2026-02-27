@@ -25,31 +25,40 @@ export function useInvitations() {
   const addMutation = useMutation({
     mutationFn: (data: { payload: CreateInvitationPayload, file?: File }) =>
       createInvitation(data.payload, data.file).then(mapInvitation),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    onSuccess: (newInvitation) => {
+      queryClient.setQueryData<Invitation[]>(["invitations"], (prev = []) => [
+        ...prev,
+        newInvitation,
+      ]);
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: (args: { id: string; payload: CreateInvitationPayload, file?: File }) =>
       updateInvitation(args.id, args.payload, args.file).then(mapInvitation),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    onSuccess: (updatedInvitation) => {
+      queryClient.setQueryData<Invitation[]>(["invitations"], (prev = []) =>
+        prev.map((inv) => (inv.id === updatedInvitation.id ? updatedInvitation : inv))
+      );
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteInvitation(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<Invitation[]>(["invitations"], (prev = []) =>
+        prev.filter((inv) => inv.id !== id)
+      );
     },
   });
 
   const confirmMutation = useMutation({
     mutationFn: (payload: { slug: string; statuses: Record<string, RSVPStatus> }) =>
       confirmRsvp(payload.slug, payload.statuses).then(mapInvitation),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    onSuccess: (updatedInvitation) => {
+      queryClient.setQueryData<Invitation[]>(["invitations"], (prev = []) =>
+        prev.map((inv) => (inv.id === updatedInvitation.id ? updatedInvitation : inv))
+      );
     },
   });
 

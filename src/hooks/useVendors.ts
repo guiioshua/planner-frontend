@@ -23,23 +23,27 @@ export function useVendors() {
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<Vendor, "id">) => createVendor(data).then(mapVendor),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    onSuccess: (newVendor) => {
+      queryClient.setQueryData<Vendor[]>(["vendors"], (prev = []) => [...prev, newVendor]);
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: (payload: { id: string; data: Partial<Omit<Vendor, "id">> }) =>
       updateVendorApi(payload.id, payload.data).then(mapVendor),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    onSuccess: (updatedVendor) => {
+      queryClient.setQueryData<Vendor[]>(["vendors"], (prev = []) =>
+        prev.map((v) => (v.id === updatedVendor.id ? updatedVendor : v))
+      );
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteVendorApi(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<Vendor[]>(["vendors"], (prev = []) =>
+        prev.filter((v) => v.id !== id)
+      );
     },
   });
 

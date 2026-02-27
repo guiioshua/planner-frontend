@@ -32,35 +32,51 @@ export function useGifts() {
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<Gift, "id">) => createGift(data).then(mapGift),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gifts"] });
-      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
+    onSuccess: (newGift) => {
+      queryClient.setQueryData<Gift[]>(["gifts"], (prev = []) => [...prev, newGift]);
+      queryClient.setQueryData<Gift[]>(["gifts", "visible"], (prev = []) =>
+        newGift.visible ? [...prev, newGift] : prev
+      );
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: (payload: { id: string; data: Partial<Omit<Gift, "id">> }) =>
       updateGift(payload.id, payload.data).then(mapGift),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gifts"] });
-      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
+    onSuccess: (updatedGift) => {
+      queryClient.setQueryData<Gift[]>(["gifts"], (prev = []) =>
+        prev.map((g) => (g.id === updatedGift.id ? updatedGift : g))
+      );
+      queryClient.setQueryData<Gift[]>(["gifts", "visible"], (prev = []) => {
+        const filtered = prev.filter((g) => g.id !== updatedGift.id);
+        return updatedGift.visible ? [...filtered, updatedGift] : filtered;
+      });
     },
   });
 
   const chooseMutation = useMutation({
     mutationFn: ({ id, slug }: { id: string; slug?: string }) =>
       chooseGiftApi(id, slug).then(mapGift),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gifts"] });
-      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
+    onSuccess: (updatedGift) => {
+      queryClient.setQueryData<Gift[]>(["gifts"], (prev = []) =>
+        prev.map((g) => (g.id === updatedGift.id ? updatedGift : g))
+      );
+      queryClient.setQueryData<Gift[]>(["gifts", "visible"], (prev = []) => {
+        const filtered = prev.filter((g) => g.id !== updatedGift.id);
+        return updatedGift.visible ? [...filtered, updatedGift] : filtered;
+      });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteGiftApi(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gifts"] });
-      queryClient.invalidateQueries({ queryKey: ["gifts", "visible"] });
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<Gift[]>(["gifts"], (prev = []) =>
+        prev.filter((g) => g.id !== id)
+      );
+      queryClient.setQueryData<Gift[]>(["gifts", "visible"], (prev = []) =>
+        prev.filter((g) => g.id !== id)
+      );
     },
   });
 
