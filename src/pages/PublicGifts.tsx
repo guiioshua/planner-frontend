@@ -1,21 +1,25 @@
 import { useParams } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { usePix } from "@/hooks/usePix";
 import { useRsvpBySlug } from "@/hooks/useRsvpBySlug";
 import { Button } from "@/components/ui/button";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
-import { Loader2 } from "lucide-react";
+import { Loader2, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { PublicGiftCard } from "@/components/PublicGiftCard";
 import { GiftConfirmDialog } from "@/components/public/GiftConfirmDialog";
+import { PixModal } from "@/components/public/PixModal";
 
 export default function PublicGifts() {
   const { slug } = useParams<{ slug: string }>();
   const { visibleGifts, chooseGift } = useApp();
   const { data: invitation, isLoading } = useRsvpBySlug(slug);
+  const { pixConfig, createTransaction } = usePix();
 
   const [choosingId, setChoosingId] = useState<string | null>(null);
   const [confirmGiftId, setConfirmGiftId] = useState<string | null>(null);
+  const [pixModalOpen, setPixModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -68,6 +72,13 @@ export default function PublicGifts() {
     }
   }
 
+  async function handlePixPayment(amount: number) {
+    if (!invitation) return;
+    await createTransaction({ invitationId: invitation.id, amount });
+  }
+
+  const hasPixKey = !!pixConfig?.pixKey;
+
   return (
     <div className="min-h-screen py-12 px-6">
       <div className="max-w-4xl mx-auto">
@@ -76,6 +87,20 @@ export default function PublicGifts() {
           <h1 className="font-serif text-3xl mb-2">Lista de Presentes</h1>
           <p className="text-muted-foreground">Escolha um presente especial para os noivos</p>
         </div>
+
+        {/* Pix CTA */}
+        {hasPixKey && (
+          <div className="flex justify-center mb-8">
+            <Button
+              variant="outline"
+              className="border-green-400 text-green-700 hover:bg-green-50 gap-2 px-6 py-5 text-base font-medium rounded-xl shadow-sm"
+              onClick={() => setPixModalOpen(true)}
+            >
+              <QrCode className="h-5 w-5" />
+              Me faça um Pix 💚
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedGifts.map((g) => (
@@ -97,6 +122,17 @@ export default function PublicGifts() {
         onConfirm={() => confirmGiftId && handleChoose(confirmGiftId)}
         onCancel={() => setConfirmGiftId(null)}
       />
+
+      {hasPixKey && (
+        <PixModal
+          open={pixModalOpen}
+          onOpenChange={setPixModalOpen}
+          pixKey={pixConfig!.pixKey}
+          receiverName={pixConfig?.receiverName}
+          invitationId={invitation.id}
+          onConfirmPayment={handlePixPayment}
+        />
+      )}
     </div>
   );
 }
