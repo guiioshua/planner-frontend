@@ -18,7 +18,7 @@ export function GiftConfirmDialog({ open, isChoosing, onConfirm, onCancel }: Gif
                 <DialogHeader>
                     <DialogTitle className="font-serif">Confirmar escolha</DialogTitle>
                     <DialogDescription>
-                        Tem certeza que deseja escolher este presente? Após confirmado, ele ficará marcado como escolhido para todos os convidados.
+                        Tem certeza que deseja escolher este presente? Após confirmado, os noivos serão notificados. Outros convidados não poderão mais selecionar este presente.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2">
