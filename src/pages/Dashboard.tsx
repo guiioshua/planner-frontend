@@ -1,13 +1,15 @@
 import { useApp } from "@/context/AppContext";
+import { usePix } from "@/hooks/usePix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BotanicalAccent } from "@/components/BotanicalAccent";
-import { Mail, Users, Clock, UserX, Heart, Plus } from "lucide-react";
+import { Mail, Users, Clock, UserX, Heart, Plus, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 
 export default function Dashboard() {
   const { stats, budgetStats } = useApp();
+  const { confirmedTotal } = usePix();
   const navigate = useNavigate();
 
   const summaryCards = [
@@ -82,6 +84,19 @@ export default function Dashboard() {
               <p className="text-2xl font-serif text-warning">{formatCurrency(budgetStats.remaining)}</p>
             </CardContent>
           </Card>
+          <Card className="border border-border/50 shadow-none">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-sans font-normal uppercase tracking-wider text-muted-foreground">
+                  Pix Recebido de Presente
+                </CardTitle>
+                <QrCode className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-serif text-green-600">{formatCurrency(confirmedTotal)}</p>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -101,7 +116,7 @@ export default function Dashboard() {
             className="border-foreground/20 hover:bg-muted"
             onClick={() => navigate("/presentes")}
           >
-            <Plus className="h-4 w-4 mr-2" /> Adicionar Presente
+            <Plus className="h-4 w-4 mr-2" /> Adicionar Presentes / Configurar Pix
           </Button>
           <Button
             variant="outline"

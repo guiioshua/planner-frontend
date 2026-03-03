@@ -19,8 +19,8 @@ const navItems = [
   { title: "Painel", url: "/", icon: LayoutDashboard },
   { title: "Convites", url: "/convites", icon: Mail },
   { title: "Convidados", url: "/convidados", icon: Users },
-  { title: "Presentes", url: "/presentes", icon: Gift },
-  { title: "Fornecedores", url: "/fornecedores", icon: Store },
+  { title: "Presentes e Pix", url: "/presentes", icon: Gift },
+  { title: "Fornecedores e Serviços", url: "/fornecedores", icon: Store },
 ];
 
 function AppSidebar() {
