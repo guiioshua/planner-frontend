@@ -244,3 +244,48 @@ export async function updateVendorApi(id: string, payload: Partial<Omit<Vendor, 
 export async function deleteVendorApi(id: string): Promise<void> {
   return http<void>(`/vendors/${id}`, { method: "DELETE" });
 }
+
+// Pix
+
+export interface PixConfigApi {
+  id: string;
+  pixKey: string;
+  receiverName: string | null;
+}
+
+export interface PixTransactionApi {
+  id: string;
+  invitationId: string;
+  invitationName: string;
+  amount: number;
+  status: "PENDENTE" | "CONFIRMADO";
+  createdAt: string;
+}
+
+export async function getPixConfig(): Promise<PixConfigApi | null> {
+  return http<PixConfigApi | null>("/pix/config");
+}
+
+export async function savePixConfig(payload: { pixKey: string; receiverName?: string }): Promise<PixConfigApi> {
+  return http<PixConfigApi>("/pix/config", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getPixTransactions(): Promise<PixTransactionApi[]> {
+  return http<PixTransactionApi[]>("/pix/transactions");
+}
+
+export async function createPixTransaction(payload: { invitationId: string; amount: number }): Promise<PixTransactionApi> {
+  return http<PixTransactionApi>("/pix/transactions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updatePixTransactionStatus(id: string, status: "PENDENTE" | "CONFIRMADO"): Promise<PixTransactionApi> {
+  return http<PixTransactionApi>(`/pix/transactions/${id}/status?status=${status}`, {
+    method: "PATCH",
+  });
+}
